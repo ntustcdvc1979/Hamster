@@ -3,7 +3,7 @@ import { getDatabase } from "https://www.gstatic.com/firebasejs/10.12.2/firebase
 import { firebaseConfig } from "./firebase-config.js";
 
 export {
-  ref, set, update, remove, onValue, get,
+  ref, set, update, remove, onValue, get, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 export const configured = !Object.values(firebaseConfig).some((v) => String(v).includes("YOUR_"));
@@ -90,7 +90,7 @@ export const ITEMS = [
     activity: "memory",
     meaning: "鼠鼠遇到喜歡的食物總想一次全部塞進頰囊，塞得太滿時，連走路都變得笨重。就像剛剛的 12 格記憶考驗一樣，當我們試圖把所有事物、待辦事項與焦慮一股腦全往生命裡塞，只要一點點干擾（就像那題數學題），原本想抓住的東西反而容易遺忘。\n\n安全感不是靠「全部擁有」換來的，懂得為自己篩選、留白，才能真正留住最重要的事物。",
     question: "【基礎題】剛剛在 3 秒高壓作畫時，你的腦袋是不是一片空白？在 12 格裡面，你印象最深刻、畫得最有自信的是哪一格？為什麼那一格特別留得住？\n\n【延伸題】回到大學生活裡，你最近最常往自己生命裡「囤積」什麼（例如：學分、活動、待辦清單或焦慮）？如果現在必須從滿滿的頰囊裡「吐出幾顆瓜子」放手，你最想先放下哪一件事？",
-    mission: "【12 格飽滿記憶大考驗】\n① 等主持人喊「1、2、3 開始！」，大家同時按下「開始挑戰」。\n② 12 格圖只出現 3 秒，盡量塞進腦袋！\n③ 算出一題數學題才能解鎖畫布。\n④ 每格限時 3 秒，憑記憶把 12 格畫出來。\n⑤ 畫完把手機螢幕朝上放在中間，等主持人搶答，最後一起點「原圖對照」！",
+    mission: "【12 格飽滿記憶大考驗】\n① 全組到齊後，主持人會依序描述 12 樣東西，仔細聽、盡量塞進腦袋！\n② 主持人按下開始，大家的手機會同時倒數 3 秒，直接進入畫布。\n③ 每格限時 3 秒，憑記憶畫出第 1～12 格，時間到自動換下一格。\n④ 畫完把手機螢幕朝上放在中間，等主持人搶答，最後一起點「原圖對照」！",
   },
   {
     id: "chew",
@@ -122,14 +122,17 @@ export function mergeItems(overrides) {
   });
 }
 
-/** 校園尺度的冷熱提示（永吉國中校區約 185 × 210 公尺） */
+/** 校園尺度的「鼠鼠嗅覺」提示（永吉國中校區約 185 × 210 公尺） */
 export function heatLevel(d, radius = 15) {
-  if (d > 120) return [0, "🧊 還很遠，換個方向試試"];
-  if (d > 70) return [1, "❄️ 有點冷"];
-  if (d > 40) return [2, "🌤️ 溫溫的"];
-  if (d > Math.max(radius + 8, 20)) return [3, "🔥 很熱了！"];
-  return [4, "🌋 超級燙！就在附近！"];
+  if (d > 120) return [0, "🐾 鼠鼠什麼味道都聞不到…"];
+  if (d > 70) return [1, "👃 好像聞到一點點味道了"];
+  if (d > 40) return [2, "🐹 鬍鬚動了動！味道變明顯了"];
+  if (d > Math.max(radius + 8, 20)) return [3, "💨 香味撲鼻！就在不遠處"];
+  return [4, "💛 鼠鼠興奮到轉圈圈！就在附近！"];
 }
+
+/** 走動時的變化提示 */
+export const TREND = { closer: "🐾 方向對了，味道越來越濃！", farther: "🌀 味道變淡了，換個方向試試…" };
 
 /** 地圖預設中心：台北市立永吉國中 */
 export const MAP_CENTER = [25.04829, 121.57347];

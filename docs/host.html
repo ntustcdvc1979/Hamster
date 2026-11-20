@@ -33,10 +33,18 @@
       <div class="tabs">
         <button data-tab="items" class="active">物品 <span id="placedCount">0</span>/4</button>
         <button data-tab="players">玩家 <span id="playerCount">0</span><span id="waitBadge" class="hidden" style="background:var(--danger);color:#fff;border-radius:10px;padding:0 6px;margin-left:4px;font-size:12px"></span></button>
+        <button data-tab="seed">🌻 出題</button>
         <button data-tab="settings">設定</button>
       </div>
       <div class="tab-body" id="tab-items"></div>
       <div class="tab-body hidden" id="tab-players"></div>
+      <div class="tab-body hidden" id="tab-seed">
+        <div class="sec-title" style="margin-top:6px">🌻 12 格飽滿記憶大考驗</div>
+        <p class="muted" style="margin:4px">① 依序口頭描述下面 12 樣東西 → ② 按「開始作畫」→ 正在瓜子任務的玩家手機會同時倒數 3 秒，直接進入畫布，每格 3 秒（共 39 秒）。</p>
+        <div id="roundStatus" class="round-live"></div>
+        <button class="btn" id="startRoundBtn">🚀 開始作畫</button>
+        <div class="cue-grid" id="cueGrid"></div>
+      </div>
       <div class="tab-body hidden" id="tab-settings">
         <label for="radiusInput">找到的判定範圍（公尺）</label>
         <input id="radiusInput" type="number" inputmode="numeric" min="3" max="200" value="15">

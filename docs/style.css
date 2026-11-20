@@ -160,11 +160,11 @@ textarea { min-height: 96px; resize: vertical; }
   animation: pulse 2.2s infinite ease-out;
 }
 @keyframes pulse { from { transform: scale(.4); opacity: 1; } to { transform: scale(1.8); opacity: 0; } }
-.radar.lv0 { background: linear-gradient(160deg, #4f7fd1, #7bb0f0); }   /* 冰 */
-.radar.lv1 { background: linear-gradient(160deg, #4aa6c9, #86d0dc); }   /* 冷 */
-.radar.lv2 { background: linear-gradient(160deg, #e7b23a, #f5d26c); }   /* 溫 */
-.radar.lv3 { background: linear-gradient(160deg, #ef7d2c, #f6a75a); }   /* 熱 */
-.radar.lv4 { background: linear-gradient(160deg, #e2412f, #f57a4c); }   /* 燙 */
+.radar.lv0 { background: linear-gradient(160deg, #7d7f8c, #a9acb8); }   /* 聞不到 */
+.radar.lv1 { background: linear-gradient(160deg, #9b8064, #c3a988); }   /* 一點點 */
+.radar.lv2 { background: linear-gradient(160deg, #c79a4a, #e2c27f); }   /* 鬍鬚動了 */
+.radar.lv3 { background: linear-gradient(160deg, #e8892c, #f5b65e); }   /* 香味撲鼻 */
+.radar.lv4 { background: linear-gradient(160deg, #f07a1f, #ffc94a); }   /* 轉圈圈 */
 .radar.lv4::before { animation-duration: .9s; }
 .radar.lv3::before { animation-duration: 1.4s; }
 .radar .lbl { font-size: 15px; opacity: .9; position: relative; }
@@ -296,3 +296,13 @@ textarea { min-height: 96px; resize: vertical; }
 .done-btn { background: var(--ok) !important; box-shadow: 0 3px 0 #2a7d45 !important; flex: none; }
 .edit-field textarea { min-height: 0; }
 .target-line .ico.won { filter: none; font-size: 32px; line-height: 40px; text-align: center; }
+.mem-stage { position: relative; }
+.mem-count-big { position: absolute; inset: 0; display: grid; place-items: center; font-size: 120px; font-weight: 900; color: var(--brand); background: rgba(255,253,248,.85); border-radius: 16px; }
+.mem-wait { background: #fff3e3; border: 2px dashed var(--brand); border-radius: 14px; padding: 14px; margin-top: 12px; font-weight: 700; line-height: 1.6; }
+.round-live { font-size: 15px; font-weight: 800; color: var(--danger); }
+.cue-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0; }
+.cue { background: #fff; border: 2px solid var(--line); border-radius: 10px; padding: 4px; text-align: center; font-size: 11px; font-weight: 700; position: relative; }
+.cue svg { width: 100%; aspect-ratio: 1; display: block; }
+.cue .no { position: absolute; left: 4px; top: 2px; color: var(--brand-dark); font-size: 12px; }
+.cue.now { border-color: var(--danger); background: #fff0ec; transform: scale(1.04); }
+.cue.past { opacity: .45; }

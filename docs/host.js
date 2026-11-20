@@ -1,7 +1,8 @@
 import {
-  db, ref, set, update, remove, onValue,
+  db, ref, set, update, remove, onValue, serverTimestamp,
   ROOT, ITEMS, EDITABLE, MAP_CENTER, mergeItems, $, esc, toast, requireConfig, requireSecure, distM, fmtDist,
 } from "./common.js";
+import { CELLS, COUNTDOWN_MS, DRAW_MS } from "./memory.js";
 
 let meta = { radius: 15 };
 let spots = {};
@@ -17,6 +18,8 @@ let myPos = null;
 let selected = ITEMS[0].id;
 let editing = null;
 let showPlayers = true;
+let round = null;
+let serverOffset = 0;
 
 const itemById = (id) => items.find((it) => it.id === id);
 
@@ -88,8 +91,13 @@ function init() {
     }
   });
 
+  $("#startRoundBtn").onclick = startDrawRound;
+
   initMap();
   subscribe();
+  onValue(ref(db, ".info/serverTimeOffset"), (s) => { serverOffset = Number(s.val()) || 0; });
+  onValue(ref(db, `${ROOT}/round`), (s) => { round = s.val(); renderSeedTab(); });
+  setInterval(renderSeedTab, 250);
   renderItems();
 }
 
@@ -317,7 +325,7 @@ function renderPlayers() {
   const list = Object.entries(players).map(([pid, p]) => ({ pid, ...p, st: playerState(p) }));
   $("#playerCount").textContent = list.length;
   const waits = list.filter((p) => p.st.kind === "wait");
-  $("#waitBadge").textContent = waits.length ? `${waits.length} 待完成` : "";
+  $("#waitBadge").textContent = waits.length ? String(waits.length) : "";
   $("#waitBadge").classList.toggle("hidden", !waits.length);
 
   if (!list.length) {
@@ -392,7 +400,7 @@ async function resetProgress() {
 /* ---------------- 分頁 / 分享 ---------------- */
 function switchTab(t) {
   document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === t));
-  ["items", "players", "settings"].forEach((x) => $(`#tab-${x}`).classList.toggle("hidden", x !== t));
+  ["items", "players", "seed", "settings"].forEach((x) => $(`#tab-${x}`).classList.toggle("hidden", x !== t));
   if ($("#panel").classList.contains("collapsed")) {
     $("#panel").classList.remove("collapsed");
     setTimeout(() => map.invalidateSize(), 50);
@@ -413,6 +421,52 @@ function openShare() {
   $("#qr").innerHTML = "";
   if (window.QRCode) new QRCode($("#qr"), { text: playerLink(), width: 200, height: 200 });
   $("#shareSheet").classList.remove("hidden");
+}
+
+/* ---------------- 🌻 12 格出題 ---------------- */
+function seedWaiting() {
+  return Object.entries(players).filter(([, p]) => {
+    const st = playerState(p);
+    return st.kind === "wait" && st.item.activity === "memory";
+  }).map(([pid, p]) => p.name);
+}
+
+let lastSeedKey = "";
+function renderSeedTab() {
+  const names = seedWaiting();
+  let k = null; // null=沒有進行中, -1=倒數, 0..11=作畫中
+  let left = 0;
+  if (round?.startAt) {
+    const drawStart = round.startAt - serverOffset + COUNTDOWN_MS;
+    const now = Date.now();
+    if (now < drawStart) { k = -1; left = Math.ceil((drawStart - now) / 1000); }
+    else if (now < drawStart + DRAW_MS * 12) k = Math.floor((now - drawStart) / DRAW_MS);
+  }
+  const btn = $("#startRoundBtn");
+  btn.disabled = k !== null;
+  btn.textContent = k !== null ? "作畫進行中…" : `🚀 開始作畫（${names.length} 人在瓜子任務）`;
+  $("#roundStatus").textContent = k === null ? (names.length ? "等待中：" + names.join("、") : "目前沒有玩家在瓜子任務")
+    : k === -1 ? `⏱️ 倒數 ${left} 秒…` : `✏️ 玩家正在畫第 ${k + 1} 格：${CELLS[k].label}`;
+
+  const key = String(k);
+  if (key === lastSeedKey && $("#cueGrid").childElementCount) return;
+  lastSeedKey = key;
+  $("#cueGrid").innerHTML = CELLS.map((c, i) => {
+    const cls = k === null || k < 0 ? "" : i === k ? "now" : i < k ? "past" : "";
+    return `<div class="cue ${cls}"><span class="no">${i + 1}</span>${c.svg}<div>${esc(c.label)}</div></div>`;
+  }).join("");
+}
+
+async function startDrawRound() {
+  const n = seedWaiting().length;
+  const msg = n ? `開始作畫？${n} 位玩家的手機會同時倒數 3 秒後進入畫布。` : "目前沒有玩家在瓜子任務，仍要開始嗎？";
+  if (!confirm(msg)) return;
+  try {
+    await set(ref(db, `${ROOT}/round`), { id: "r" + Date.now().toString(36), startAt: serverTimestamp() });
+    toast("🚀 已開始！");
+  } catch (e) {
+    toast("開始失敗：" + e.message, 4000);
+  }
 }
 
 // 每 15 秒刷新「幾秒前」

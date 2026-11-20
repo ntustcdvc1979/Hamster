@@ -1,8 +1,8 @@
 import {
   db, ref, update, onValue,
-  ROOT, ITEMS, mergeItems, heatLevel, $, distM, fmtDist, esc, toast, requireConfig, requireSecure,
+  ROOT, ITEMS, mergeItems, heatLevel, TREND, $, distM, fmtDist, esc, toast, requireConfig, requireSecure,
 } from "./common.js";
-import { openMemoryGame, hasWall } from "./memory.js";
+import { startRound, openWall, hasWall, COUNTDOWN_MS, DRAW_MS } from "./memory.js";
 
 const LS = "hamster_player_v2";
 
@@ -18,6 +18,9 @@ let lastTarget = null; // { id, d }
 let lastUpload = 0;
 let allDoneShown = false;
 let revealQueue = [];
+let round = null;        // 主持人發起的 12 格出題 { id, startAt(伺服器時間) }
+let startedRound = null; // 這支手機已經進入過的回合
+let serverOffset = 0;    // 伺服器時間 - 本機時間
 
 function init() {
   let saved = null;
@@ -40,8 +43,7 @@ function init() {
     showNextReveal();
   };
   $("#photoInput").onchange = onPhoto;
-  $("#memStartBtn").onclick = () => openMemoryGame("intro");
-  $("#memWallBtn").onclick = () => openMemoryGame("wall");
+  $("#memWallBtn").onclick = openWall;
   setName(myName);
 
   update(ref(db, `${ROOT}/players/${pid}`), { name: myName, joinedAt: Date.now() }).catch(() => {});
@@ -70,6 +72,8 @@ function init() {
     meLoaded = true;
     render();
   });
+  onValue(ref(db, ".info/serverTimeOffset"), (s) => { serverOffset = Number(s.val()) || 0; });
+  onValue(ref(db, `${ROOT}/round`), (s) => { round = s.val(); maybeStartRound(); });
 
   startGps();
   render();
@@ -203,12 +207,12 @@ function renderHunt(cur) {
     trend = "";
     lastTarget = { id: t.id, d: t.d };
   } else if (Math.abs(t.d - lastTarget.d) >= 2) {
-    trend = t.d < lastTarget.d ? "⬆️ 越來越近了！" : "⬇️ 越走越遠了…";
+    trend = t.d < lastTarget.d ? TREND.closer : TREND.farther;
     lastTarget.d = t.d;
   }
 
   const ok = canFind(t);
-  setRadar(lv, "離寶物還有", num, unit, ok ? "✨ 就是這裡！按下面的按鈕！" : label, trend);
+  setRadar(lv, "離寶物還有", num, unit, ok ? "✨ 找到味道的源頭了！按下面的按鈕！" : label, trend);
   btn.disabled = !ok;
 }
 
@@ -220,6 +224,19 @@ function renderMission(cur) {
   $("#photoBox").classList.toggle("hidden", cur.activity !== "photo");
   $("#memoryBox").classList.toggle("hidden", cur.activity !== "memory");
   $("#memWallBtn").classList.toggle("hidden", !hasWall());
+  maybeStartRound();
+}
+
+/** 主持人按下 12 格「開始」→ 正在瓜子任務的玩家直接進入畫布 */
+function maybeStartRound() {
+  if (!round?.id || typeof round.startAt !== "number" || round.id === startedRound) return;
+  const cur = currentItem();
+  if (!cur || cur.activity !== "memory" || !me.found?.[cur.id]) return;
+  const drawStart = round.startAt - serverOffset + COUNTDOWN_MS;
+  if (Date.now() > drawStart + DRAW_MS * 12) return; // 回合已經結束
+  startedRound = round.id;
+  try { navigator.vibrate?.(200); } catch {}
+  startRound(drawStart);
 }
 
 function renderAllDone() {

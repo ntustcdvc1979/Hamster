@@ -6,33 +6,72 @@
       ".read": true,
       "meta": {
         ".write": true,
-        "radius": { ".validate": "newData.isNumber() && newData.val() >= 3 && newData.val() <= 200" }
+        "radius": {
+          ".validate": "newData.isNumber() && newData.val() >= 3 && newData.val() <= 200"
+        }
       },
       "spots": {
         ".write": true,
         "$item": {
           ".validate": "$item.matches(/^(wheel|nest|seed|chew)$/) && newData.hasChildren(['lat', 'lng'])",
-          "lat": { ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90" },
-          "lng": { ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180" }
+          "lat": {
+            ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"
+          },
+          "lng": {
+            ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"
+          }
         }
       },
       "items": {
         ".write": true,
         "$item": {
           ".validate": "$item.matches(/^(wheel|nest|seed|chew)$/)",
-          "name": { ".validate": "newData.isString() && newData.val().length <= 30" },
-          "mission": { ".validate": "newData.isString() && newData.val().length <= 2000" },
-          "meaning": { ".validate": "newData.isString() && newData.val().length <= 2000" },
-          "question": { ".validate": "newData.isString() && newData.val().length <= 2000" },
-          "$other": { ".validate": false }
+          "name": {
+            ".validate": "newData.isString() && newData.val().length <= 30"
+          },
+          "mission": {
+            ".validate": "newData.isString() && newData.val().length <= 2000"
+          },
+          "meaning": {
+            ".validate": "newData.isString() && newData.val().length <= 2000"
+          },
+          "question": {
+            ".validate": "newData.isString() && newData.val().length <= 2000"
+          },
+          "$other": {
+            ".validate": false
+          }
         }
       },
       "players": {
         ".write": true,
         "$pid": {
-          "name": { ".validate": "newData.isString() && newData.val().length <= 20" },
-          "found": { "$item": { ".validate": "$item.matches(/^(wheel|nest|seed|chew)$/) && newData.isNumber()" } },
-          "done": { "$item": { ".validate": "$item.matches(/^(wheel|nest|seed|chew)$/) && newData.isNumber()" } }
+          "name": {
+            ".validate": "newData.isString() && newData.val().length <= 20"
+          },
+          "found": {
+            "$item": {
+              ".validate": "$item.matches(/^(wheel|nest|seed|chew)$/) && newData.isNumber()"
+            }
+          },
+          "done": {
+            "$item": {
+              ".validate": "$item.matches(/^(wheel|nest|seed|chew)$/) && newData.isNumber()"
+            }
+          }
+        }
+      },
+      "round": {
+        ".write": true,
+        ".validate": "newData.hasChildren([\"id\",\"startAt\"])",
+        "id": {
+          ".validate": "newData.isString() && newData.val().length <= 30"
+        },
+        "startAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
         }
       }
     }

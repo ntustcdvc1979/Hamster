@@ -1,7 +1,6 @@
-// 🌻 12 格飽滿記憶大考驗
-// 12 格的內容與順序是固定陣列，所有玩家看到的位置都一模一樣，主持人才能針對「第幾格」搶答。
-
-import { toast } from "./common.js";
+// 🌻 12 格飽滿記憶大考驗（主持人出題版）
+// 主持人在主持人頁面看著 12 格原圖口頭描述，按「開始」後所有在瓜子任務的玩家同步進入畫布，
+// 每格 3 秒。12 格內容與順序是固定陣列，每支手機的「原圖對照」都一樣，主持人才能針對「第幾格」搶答。
 
 const INK = "#2b2b2b";
 const ST = `fill="none" stroke="${INK}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"`;
@@ -65,8 +64,9 @@ export const CELLS = [
 ];
 
 const LS = "hamster_memory_wall";
-const SHOW_MS = 3000;
-const DRAW_MS = 3000;
+export const DRAW_MS = 3000;          // 每格作畫秒數
+export const COUNTDOWN_MS = 3000;     // 主持人按開始後的倒數
+export const ROUND_MS = COUNTDOWN_MS + DRAW_MS * 12;
 
 function loadWall() {
   try { const a = JSON.parse(localStorage.getItem(LS) || "null"); return Array.isArray(a) && a.length === 12 ? a : null; }
@@ -77,14 +77,11 @@ function saveWall(a) { try { localStorage.setItem(LS, JSON.stringify(a)); } catc
 export function hasWall() { return !!loadWall(); }
 
 let root = null;
-
-function el(html) {
-  const d = document.createElement("div");
-  d.innerHTML = html.trim();
-  return d.firstChild;
-}
+let timer = null;
 
 function close() {
+  clearInterval(timer);
+  timer = null;
   if (root) root.remove();
   root = null;
   document.body.classList.remove("no-scroll");
@@ -92,7 +89,8 @@ function close() {
 
 function mount(inner) {
   if (!root) {
-    root = el(`<div class="mem"></div>`);
+    root = document.createElement("div");
+    root.className = "mem";
     document.body.appendChild(root);
     document.body.classList.add("no-scroll");
   }
@@ -105,82 +103,33 @@ function grid(cells, cls = "") {
     `<div class="mem-cell"><span class="no">${i + 1}</span>${c}</div>`).join("")}</div>`;
 }
 
-/** 開啟遊戲。startAt: "intro" | "wall" */
-export function openMemoryGame(startAt = "intro") {
-  if (startAt === "wall" && loadWall()) return showWall(loadWall(), false);
-  intro();
+export function isRunning() { return !!timer; }
+
+/** 開啟作品牆 */
+export function openWall() {
+  const w = loadWall();
+  if (w) showWall(w, false);
 }
 
-function intro() {
+/**
+ * 主持人按下開始後呼叫。drawStart = 本機時間（第 1 格開始作畫的時刻）。
+ * 每一格的時間都由 drawStart 推算，所以每支手機同步換格；晚到的人錯過的格子會留白。
+ */
+export function startRound(drawStart) {
+  close();
   const r = mount(`
-    <div class="mem-top"><b>🌻 12 格飽滿記憶大考驗</b><button class="close" data-x>×</button></div>
-    <div class="mem-body center-col">
-      <div class="mem-rules">
-        <p>① 等主持人喊「1、2、3 開始！」再按下面的按鈕</p>
-        <p>② 12 格圖只出現 <b>3 秒</b>，盡量塞進腦袋！</p>
-        <p>③ 算對一題數學題才能解鎖畫布</p>
-        <p>④ 每格限時 <b>3 秒</b>，憑記憶畫出第 1～12 格</p>
-      </div>
-      <button class="btn mem-go" data-start>🚀 開始挑戰</button>
-      ${loadWall() ? `<button class="btn secondary" data-wall>🖼️ 看我上次的作品牆</button>` : ""}
-    </div>`);
-  r.querySelector("[data-x]").onclick = close;
-  r.querySelector("[data-start]").onclick = showGrid;
-  const w = r.querySelector("[data-wall]");
-  if (w) w.onclick = () => showWall(loadWall(), false);
-}
-
-function showGrid() {
-  const r = mount(`
-    <div class="mem-top"><b>記住它們！</b><span class="mem-count" id="memCount">3</span></div>
-    <div class="mem-body">${grid(CELLS.map((c) => c.svg), "big")}</div>
-    <div class="mem-bar"><div style="animation-duration:${SHOW_MS}ms"></div></div>`);
-  let left = 3;
-  const t = setInterval(() => {
-    left -= 1;
-    const c = r.querySelector("#memCount");
-    if (c) c.textContent = Math.max(left, 0);
-  }, 1000);
-  setTimeout(() => { clearInterval(t); math(); }, SHOW_MS);
-}
-
-function math() {
-  let a = 10 + Math.floor(Math.random() * 90);
-  let b = 10 + Math.floor(Math.random() * 90);
-  const plus = Math.random() < 0.5;
-  if (!plus && b > a) [a, b] = [b, a];
-  const ans = plus ? a + b : a - b;
-  const r = mount(`
-    <div class="mem-top"><b>🧮 先算出答案才能解鎖畫布！</b></div>
-    <div class="mem-body center-col">
-      <div class="mem-q">${a} ${plus ? "+" : "−"} ${b} = ?</div>
-      <input class="mem-ans" id="memAns" type="number" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
-      <button class="btn" data-ok>🔓 解鎖</button>
-    </div>`);
-  const inp = r.querySelector("#memAns");
-  setTimeout(() => inp.focus(), 50);
-  const check = () => {
-    if (Number(inp.value) === ans) { inp.blur(); draw(); }
-    else {
-      inp.classList.remove("shake"); void inp.offsetWidth; inp.classList.add("shake");
-      inp.value = "";
-      toast("答錯了，再算一次！");
-    }
-  };
-  r.querySelector("[data-ok]").onclick = check;
-  inp.addEventListener("keydown", (e) => e.key === "Enter" && check());
-}
-
-function draw() {
-  const r = mount(`
-    <div class="mem-top"><b>憑記憶畫出 <span class="mem-cellno" id="memNo">第 1 格</span></b><span class="muted" id="memOf">1 / 12</span></div>
+    <div class="mem-top"><b id="memTitle">🌻 主持人開始出題了！</b><span class="muted" id="memOf"></span></div>
     <div class="mem-body center-col">
       <div class="mem-mini" id="memMini"></div>
-      <canvas class="mem-canvas" id="memCanvas"></canvas>
+      <div class="mem-stage">
+        <canvas class="mem-canvas" id="memCanvas"></canvas>
+        <div class="mem-count-big" id="memCountBig"></div>
+      </div>
     </div>
-    <div class="mem-bar"><div id="memBar"></div></div>`);
+    <div class="mem-bar"><div id="memBar" style="animation:none"></div></div>`);
+
   const cv = r.querySelector("#memCanvas");
-  const size = Math.floor(Math.min(window.innerWidth - 32, window.innerHeight - 230, 560));
+  const size = Math.floor(Math.min(window.innerWidth - 32, window.innerHeight - 200, 560));
   const dpr = window.devicePixelRatio || 1;
   cv.style.width = cv.style.height = size + "px";
   cv.width = cv.height = size * dpr;
@@ -188,18 +137,21 @@ function draw() {
   ctx.scale(dpr, dpr);
   ctx.lineCap = ctx.lineJoin = "round";
   ctx.lineWidth = Math.max(4, size / 70);
-  ctx.strokeStyle = INK;
+  ctx.strokeStyle = ctx.fillStyle = INK;
 
+  let k = -1; // 目前格子（-1 = 倒數中）
+  let ended = false;
   let drawing = false;
   let last = null;
   const pt = (e) => { const b = cv.getBoundingClientRect(); return { x: e.clientX - b.left, y: e.clientY - b.top }; };
   cv.addEventListener("pointerdown", (e) => {
+    if (k < 0) return;
     drawing = true; last = pt(e);
     try { cv.setPointerCapture(e.pointerId); } catch {}
-    ctx.beginPath(); ctx.arc(last.x, last.y, ctx.lineWidth / 2, 0, Math.PI * 2); ctx.fillStyle = INK; ctx.fill();
+    ctx.beginPath(); ctx.arc(last.x, last.y, ctx.lineWidth / 2, 0, Math.PI * 2); ctx.fill();
   });
   cv.addEventListener("pointermove", (e) => {
-    if (!drawing) return;
+    if (!drawing || k < 0) return;
     const p = pt(e);
     ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
     last = p;
@@ -208,26 +160,54 @@ function draw() {
   cv.addEventListener("pointerup", stop);
   cv.addEventListener("pointercancel", stop);
 
-  const out = [];
-  let k = 0;
+  const out = Array(12).fill(null);
+  const title = r.querySelector("#memTitle");
+  const of = r.querySelector("#memOf");
   const mini = r.querySelector("#memMini");
-  const next = () => {
-    r.querySelector("#memNo").textContent = `第 ${k + 1} 格`;
-    r.querySelector("#memOf").textContent = `${k + 1} / 12`;
-    mini.innerHTML = Array.from({ length: 12 }, (_, i) => `<i class="${i < k ? "done" : i === k ? "now" : ""}"></i>`).join("");
-    ctx.clearRect(0, 0, size, size);
-    const bar = r.querySelector("#memBar");
-    bar.style.animation = "none"; void bar.offsetWidth;
-    bar.style.animation = `memBar ${DRAW_MS}ms linear forwards`;
-    setTimeout(() => {
-      drawing = false;
-      out.push(snapshot(cv));
-      k += 1;
-      if (k < 12) next();
-      else { saveWall(out); showWall(out, true); }
-    }, DRAW_MS);
+  const big = r.querySelector("#memCountBig");
+  const bar = r.querySelector("#memBar");
+
+  const paintMini = () => {
+    mini.innerHTML = Array.from({ length: 12 }, (_, i) =>
+      `<i class="${i < k ? "done" : i === k ? "now" : ""}"></i>`).join("");
   };
-  next();
+
+  const tick = () => {
+    const now = Date.now();
+    const nk = now < drawStart ? -1 : Math.floor((now - drawStart) / DRAW_MS);
+
+    if (nk === -1) {
+      big.textContent = Math.ceil((drawStart - now) / 1000);
+      big.classList.remove("hidden");
+      title.textContent = "🌻 準備好畫筆！";
+      of.textContent = "";
+      return;
+    }
+    if (nk !== k) {
+      if (k >= 0 && k < 12) out[k] = snapshot(cv);
+      k = nk;
+      drawing = false;
+      if (k >= 12) {
+        ended = true;
+        const wall = out.map((u) => u || blank());
+        saveWall(wall);
+        close();
+        showWall(wall, true);
+        return;
+      }
+      big.classList.add("hidden");
+      ctx.clearRect(0, 0, size, size);
+      title.innerHTML = `畫出 <span class="mem-cellno">第 ${k + 1} 格</span>`;
+      of.textContent = `${k + 1} / 12`;
+      paintMini();
+      const left = drawStart + (k + 1) * DRAW_MS - now;
+      bar.style.animation = "none"; void bar.offsetWidth;
+      bar.style.animation = `memBar ${left}ms linear forwards`;
+    }
+  };
+  paintMini();
+  tick();
+  if (!ended) timer = setInterval(tick, 80);
 }
 
 function snapshot(cv) {
@@ -238,6 +218,15 @@ function snapshot(cv) {
   x.fillStyle = "#fff";
   x.fillRect(0, 0, s, s);
   x.drawImage(cv, 0, 0, s, s);
+  return c.toDataURL("image/png");
+}
+
+function blank() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 20;
+  const x = c.getContext("2d");
+  x.fillStyle = "#fff";
+  x.fillRect(0, 0, 20, 20);
   return c.toDataURL("image/png");
 }
 
@@ -252,13 +241,9 @@ function showWall(imgs, fresh) {
       </div>
       <div class="mem-actions">
         <button class="btn ${showOriginal ? "" : "secondary"}" data-toggle>${showOriginal ? "🎨 看我的作品" : "👀 原圖對照"}</button>
-        <button class="btn secondary" data-again>🔁 再挑戰一次</button>
       </div>`);
     r.querySelector("[data-x]").onclick = close;
     r.querySelector("[data-toggle]").onclick = () => { showOriginal = !showOriginal; render(); };
-    r.querySelector("[data-again]").onclick = () => {
-      if (confirm("再挑戰一次會覆蓋這次的作品，確定嗎？")) intro();
-    };
   };
   render();
 }
