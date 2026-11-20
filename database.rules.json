@@ -16,10 +16,23 @@
           "lng": { ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180" }
         }
       },
+      "items": {
+        ".write": true,
+        "$item": {
+          ".validate": "$item.matches(/^(wheel|nest|seed|chew)$/)",
+          "name": { ".validate": "newData.isString() && newData.val().length <= 30" },
+          "mission": { ".validate": "newData.isString() && newData.val().length <= 2000" },
+          "meaning": { ".validate": "newData.isString() && newData.val().length <= 2000" },
+          "question": { ".validate": "newData.isString() && newData.val().length <= 2000" },
+          "$other": { ".validate": false }
+        }
+      },
       "players": {
         ".write": true,
         "$pid": {
-          "name": { ".validate": "newData.isString() && newData.val().length <= 20" }
+          "name": { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "found": { "$item": { ".validate": "$item.matches(/^(wheel|nest|seed|chew)$/) && newData.isNumber()" } },
+          "done": { "$item": { ".validate": "$item.matches(/^(wheel|nest|seed|chew)$/) && newData.isNumber()" } }
         }
       }
     }

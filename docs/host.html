@@ -15,7 +15,7 @@
     <div class="topbar">
       <div class="grow">
         <div class="room-code" style="letter-spacing:.02em">🐹 主持人</div>
-        <div class="room-name">選一個物品，點地圖放置或移動</div>
+        <div class="room-name">選物品 → 點地圖放置；玩家依 1→4 順序尋找</div>
       </div>
       <button class="btn small" id="shareBtn">📲 玩家連結</button>
     </div>
@@ -32,7 +32,7 @@
       <div class="panel-handle" id="panelHandle"><span></span></div>
       <div class="tabs">
         <button data-tab="items" class="active">物品 <span id="placedCount">0</span>/4</button>
-        <button data-tab="players">玩家 <span id="playerCount">0</span></button>
+        <button data-tab="players">玩家 <span id="playerCount">0</span><span id="waitBadge" class="hidden" style="background:var(--danger);color:#fff;border-radius:10px;padding:0 6px;margin-left:4px;font-size:12px"></span></button>
         <button data-tab="settings">設定</button>
       </div>
       <div class="tab-body" id="tab-items"></div>
@@ -40,13 +40,23 @@
       <div class="tab-body hidden" id="tab-settings">
         <label for="radiusInput">找到的判定範圍（公尺）</label>
         <input id="radiusInput" type="number" inputmode="numeric" min="3" max="200" value="15">
-        <p class="muted">玩家距離物品在這個範圍內，才能按「找到了」。GPS 在戶外誤差約 5–15 公尺，建議 10–20。</p>
+        <p class="muted">玩家距離物品在這個範圍內，才能按「找到了」。永吉國中操場等空曠處 GPS 誤差約 5–10 公尺、靠近大樓會到 15–20 公尺，建議設 12–15；四個物品之間最好相隔 40 公尺以上。</p>
         <label style="display:flex;align-items:center;gap:8px;font-weight:400">
           <input type="checkbox" id="showPlayers" checked style="width:auto"> 在地圖上顯示玩家位置
         </label>
         <button class="btn secondary" id="saveSettingsBtn">儲存設定</button>
         <button class="btn secondary" id="resetBtn">🔄 清空所有玩家進度</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 編輯物品說明 -->
+  <div id="editSheet" class="overlay hidden">
+    <div class="sheet">
+      <h3><span class="item-ico" id="editIco" style="width:36px;height:36px"></span><span id="editTitle">編輯說明</span><button class="close" data-close>×</button></h3>
+      <div id="editFields"></div>
+      <button class="btn" id="saveEditBtn">💾 儲存（玩家畫面會立即更新）</button>
+      <button class="btn secondary" id="resetEditBtn">↩️ 還原成預設內容</button>
     </div>
   </div>
 

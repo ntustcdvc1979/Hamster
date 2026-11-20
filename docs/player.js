@@ -1,18 +1,23 @@
 import {
   db, ref, update, onValue,
-  ROOT, ITEMS, ITEM, $, distM, fmtDist, esc, placedItems, toast, requireConfig, requireSecure,
+  ROOT, ITEMS, mergeItems, heatLevel, $, distM, fmtDist, esc, toast, requireConfig, requireSecure,
 } from "./common.js";
+import { openMemoryGame, hasWall } from "./memory.js";
 
 const LS = "hamster_player_v2";
 
 let pid, myName;
 let meta = { radius: 15 };
 let spots = {};
-let me = { found: {} };
+let items = mergeItems({});
+let me = { found: {}, done: {} };
+let meLoaded = false;
+let knownDone = new Set();
 let pos = null;
 let lastTarget = null; // { id, d }
 let lastUpload = 0;
 let allDoneShown = false;
+let revealQueue = [];
 
 function init() {
   let saved = null;
@@ -26,40 +31,60 @@ function init() {
   }
   pid = saved.pid;
   myName = saved.name;
-  $("#meName").textContent = myName;
 
   $("#nameBox").onclick = rename;
+  $("#mWho").onclick = rename;
   $("#findBtn").onclick = tryFind;
-  document.querySelectorAll("[data-close]").forEach((b) =>
-    b.addEventListener("click", () => $("#revealSheet").classList.add("hidden")));
+  $("#revealClose").onclick = () => {
+    $("#revealSheet").classList.add("hidden");
+    showNextReveal();
+  };
+  $("#photoInput").onchange = onPhoto;
+  $("#memStartBtn").onclick = () => openMemoryGame("intro");
+  $("#memWallBtn").onclick = () => openMemoryGame("wall");
+  setName(myName);
 
   update(ref(db, `${ROOT}/players/${pid}`), { name: myName, joinedAt: Date.now() }).catch(() => {});
 
   onValue(ref(db, `${ROOT}/meta`), (s) => { meta = s.val() || { radius: 15 }; render(); });
   onValue(ref(db, `${ROOT}/spots`), (s) => { spots = s.val() || {}; render(); });
+  onValue(ref(db, `${ROOT}/items`), (s) => { items = mergeItems(s.val()); render(); });
   onValue(ref(db, `${ROOT}/players/${pid}`), (s) => {
     if (!s.exists()) {
       // 主持人清空了進度 → 重新登記
-      me = { found: {} };
+      me = { found: {}, done: {} };
+      knownDone = new Set();
       allDoneShown = false;
       update(ref(db, `${ROOT}/players/${pid}`), { name: myName, joinedAt: Date.now() }).catch(() => {});
     } else {
       me = s.val();
       me.found = me.found || {};
+      me.done = me.done || {};
+      // 主持人剛按下「完成」→ 跳出獲得意義
+      const nowDone = Object.keys(me.done);
+      if (meLoaded) {
+        nowDone.filter((id) => !knownDone.has(id)).forEach((id) => queueReveal(id));
+      }
+      knownDone = new Set(nowDone);
     }
+    meLoaded = true;
     render();
   });
 
   startGps();
-  keepAwake();
   render();
 }
 
+function setName(n) {
+  $("#meName").textContent = n;
+  $("#mWho").textContent = n;
+}
+
 function rename() {
-  const n = prompt("你的暱稱", myName);
+  const n = prompt("你的暱稱（主持人會用這個名字幫你按完成）", myName);
   if (!n || !n.trim()) return;
   myName = n.trim().slice(0, 16);
-  $("#meName").textContent = myName;
+  setName(myName);
   try { localStorage.setItem(LS, JSON.stringify({ pid, name: myName })); } catch {}
   update(ref(db, `${ROOT}/players/${pid}`), { name: myName }).catch(() => {});
 }
@@ -99,19 +124,18 @@ async function keepAwake() {
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") keepAwake();
 });
-// iOS 等需要使用者點擊後才能鎖定螢幕常亮
 document.addEventListener("click", keepAwake, { once: true });
 
-/* ---------------- 畫面 ---------------- */
-function nearestUnfound() {
-  if (!pos) return null;
-  let best = null;
-  placedItems(spots).forEach((it) => {
-    if (me.found?.[it.id]) return;
-    const d = distM(pos, it);
-    if (!best || d < best.d) best = { ...it, d };
-  });
-  return best;
+/* ---------------- 狀態 ---------------- */
+/** 目前關卡：依順序第一個主持人還沒按完成的物品 */
+function currentItem() {
+  return items.find((it) => !me.done?.[it.id]) || null;
+}
+
+function targetInfo(it) {
+  const s = spots[it.id];
+  if (!s || !pos) return null;
+  return { ...it, lat: s.lat, lng: s.lng, d: distM(pos, s) };
 }
 
 function canFind(t) {
@@ -120,70 +144,96 @@ function canFind(t) {
   return t.d - Math.min(pos.acc, 20) * 0.5 <= (meta.radius || 15);
 }
 
-function level(d) {
-  const r = meta.radius || 15;
-  if (d > 300) return [0, "🧊 冰天雪地"];
-  if (d > 120) return [1, "❄️ 有點冷"];
-  if (d > 50) return [2, "🌤️ 溫溫的"];
-  if (d > Math.max(r * 2, 25)) return [3, "🔥 很熱了！"];
-  return [4, "🌋 超級燙！就在附近！"];
+/* ---------------- 畫面 ---------------- */
+function render() {
+  const doneN = items.filter((it) => me.done?.[it.id]).length;
+  $("#doneN").textContent = doneN;
+  $("#progBar").style.width = `${(doneN / 4) * 100}%`;
+  renderBag();
+
+  const cur = currentItem();
+  const inMission = cur && me.found?.[cur.id];
+  $("#huntView").classList.toggle("hidden", !!inMission);
+  $("#missionView").classList.toggle("hidden", !inMission);
+
+  if (!cur) return renderAllDone();
+  if (inMission) return renderMission(cur);
+  renderHunt(cur);
 }
 
-function render() {
-  const placed = placedItems(spots);
-  const total = placed.length;
-  const n = placed.filter((it) => me.found?.[it.id]).length;
-  $("#foundN").textContent = n;
-  $("#totalN").textContent = total || 4;
-  $("#progBar").style.width = total ? `${(n / total) * 100}%` : "0";
-
-  // 收藏：四格，找到的亮起
-  $("#bagItems").innerHTML = ITEMS.map((it) => {
-    const got = !!me.found?.[it.id];
-    return `<div class="bag-slot ${got ? "got" : ""}" data-id="${it.id}">
-      <div class="ico">${it.icon}</div><div class="nm">${got ? esc(it.name) : "？？？"}</div></div>`;
+function renderBag() {
+  $("#bagItems").innerHTML = items.map((it) => {
+    const done = !!me.done?.[it.id];
+    const pending = !done && !!me.found?.[it.id];
+    const cls = done ? "got" : pending ? "pending" : "";
+    const label = done ? esc(it.name) : pending ? "任務中…" : `第 ${it.order} 個`;
+    return `<div class="bag-slot ${cls}" data-id="${it.id}">
+      <div class="ico">${it.icon}</div><div class="nm">${label}</div></div>`;
   }).join("");
   $("#bagItems").querySelectorAll(".bag-slot.got").forEach((el) =>
     (el.onclick = () => showReveal(el.dataset.id, true)));
+}
 
+function renderHunt(cur) {
   const btn = $("#findBtn");
+  btn.textContent = "🔍 我找到了！";
+  $("#targetIco").innerHTML = cur.icon;
+  $("#targetIco").classList.remove("won");
+  $("#targetTitle").textContent = `第 ${cur.order} 個寶物`;
+  $("#targetSub").textContent = cur.order === 1 ? "依照順序，一次找一個" : `已完成 ${cur.order - 1} 關，繼續前進！`;
   $("#accLbl").textContent = pos ? `GPS 誤差 ±${Math.round(pos.acc)} 公尺` : "";
 
-  if (!total) {
-    setRadar(0, "", "--", "", "主持人還在藏寶物，請稍候…", "");
+  if (!spots[cur.id]) {
+    setRadar(0, "", "--", "", `主持人還在藏第 ${cur.order} 個寶物，請稍候…`, "");
     btn.disabled = true;
     return;
   }
-  if (n >= total) {
-    setRadar(4, "", "🏆", "", "全部找到了！", "你找到了內心的倉鼠 🐹💛");
-    btn.disabled = true;
-    btn.textContent = "🎉 任務完成";
-    if (!allDoneShown && total >= 4) { allDoneShown = true; confetti(); }
-    return;
-  }
-  btn.textContent = "🔍 我找到了！";
   if (!pos) {
-    setRadar(0, "離最近的寶物還有", "--", "", "取得定位中…", "");
+    setRadar(0, "離寶物還有", "--", "", "取得定位中…", "");
     btn.disabled = true;
     return;
   }
 
-  const t = nearestUnfound();
+  const t = targetInfo(cur);
   const { num, unit } = fmtDist(t.d);
-  const [lv, label] = level(t.d);
+  const [lv, label] = heatLevel(t.d, meta.radius || 15);
 
   let trend = $("#trendLbl").textContent;
   if (!lastTarget || lastTarget.id !== t.id) {
     trend = "";
     lastTarget = { id: t.id, d: t.d };
-  } else if (Math.abs(t.d - lastTarget.d) >= 3) {
+  } else if (Math.abs(t.d - lastTarget.d) >= 2) {
     trend = t.d < lastTarget.d ? "⬆️ 越來越近了！" : "⬇️ 越走越遠了…";
     lastTarget.d = t.d;
   }
 
   const ok = canFind(t);
-  setRadar(lv, "離最近的寶物還有", num, unit, ok ? "✨ 就是這裡！按下面的按鈕！" : label, trend);
+  setRadar(lv, "離寶物還有", num, unit, ok ? "✨ 就是這裡！按下面的按鈕！" : label, trend);
   btn.disabled = !ok;
+}
+
+function renderMission(cur) {
+  $("#mIco").innerHTML = cur.icon;
+  $("#mStep").textContent = `第 ${cur.order} 關 · 找到了！`;
+  $("#mName").textContent = cur.name;
+  $("#mTask").textContent = cur.mission;
+  $("#photoBox").classList.toggle("hidden", cur.activity !== "photo");
+  $("#memoryBox").classList.toggle("hidden", cur.activity !== "memory");
+  $("#memWallBtn").classList.toggle("hidden", !hasWall());
+}
+
+function renderAllDone() {
+  $("#huntView").classList.remove("hidden");
+  $("#targetIco").innerHTML = "🏆";
+  $("#targetIco").classList.add("won");
+  $("#targetTitle").textContent = "四個寶物都找到了！";
+  $("#targetSub").textContent = "點下面的收藏可以再讀一次";
+  $("#accLbl").textContent = "";
+  setRadar(4, "", "🏆", "", "全部完成！", "你找到了內心的倉鼠 🐹💛");
+  const btn = $("#findBtn");
+  btn.disabled = true;
+  btn.textContent = "🎉 任務完成";
+  if (!allDoneShown && meLoaded) { allDoneShown = true; if (!revealQueue.length) confetti(); }
 }
 
 function setRadar(lv, lbl, num, unit, temp, trend) {
@@ -197,13 +247,15 @@ function setRadar(lv, lbl, num, unit, temp, trend) {
 
 /* ---------------- 找到 ---------------- */
 async function tryFind() {
-  const t = nearestUnfound();
+  const cur = currentItem();
+  if (!cur || me.found?.[cur.id]) return;
+  const t = targetInfo(cur);
   if (!canFind(t)) return toast("還不夠近喔，再找找看！");
   $("#findBtn").disabled = true;
   try {
-    await update(ref(db, `${ROOT}/players/${pid}/found`), { [t.id]: Date.now() });
+    await update(ref(db, `${ROOT}/players/${pid}/found`), { [cur.id]: Date.now() });
     try { navigator.vibrate?.([80, 40, 160]); } catch {}
-    showReveal(t.id, false);
+    toast(`找到「${cur.name}」了！完成小任務吧`, 3000);
     confetti();
   } catch (e) {
     toast("送出失敗：" + e.message, 4000);
@@ -211,15 +263,50 @@ async function tryFind() {
   }
 }
 
+/* ---------------- 任務：拍照 ---------------- */
+function onPhoto(e) {
+  const f = e.target.files?.[0];
+  if (!f) return;
+  const url = URL.createObjectURL(f);
+  const img = document.createElement("img");
+  img.src = url;
+  img.alt = "鼠鼠眼中的世界";
+  img.onclick = () => {
+    const full = document.createElement("div");
+    full.className = "photo-full";
+    full.innerHTML = `<img src="${url}" alt="">`;
+    full.onclick = () => full.remove();
+    document.body.appendChild(full);
+  };
+  $("#photoList").prepend(img);
+  e.target.value = "";
+  toast("拍好了！點照片可以全螢幕展示");
+}
+
+/* ---------------- 揭曉 ---------------- */
+function queueReveal(id) {
+  revealQueue.push(id);
+  if ($("#revealSheet").classList.contains("hidden")) showNextReveal();
+}
+
+function showNextReveal() {
+  const id = revealQueue.shift();
+  if (!id) return;
+  showReveal(id, false);
+  try { navigator.vibrate?.([60, 30, 60, 30, 200]); } catch {}
+  confetti();
+}
+
 function showReveal(id, again) {
-  const it = ITEM[id];
+  const it = items.find((x) => x.id === id);
   if (!it) return;
   $("#revealIco").innerHTML = it.icon;
-  $("#revealSub").textContent = again ? "我的收藏" : "🎉 恭喜！你找到了";
+  $("#revealSub").textContent = again ? "我的收藏" : `🎉 第 ${it.order} 關完成！你獲得了`;
   $("#revealName").textContent = it.name;
   $("#revealTag").textContent = it.sub ? `（${it.sub}）` : "";
   $("#revealMeaning").textContent = it.meaning;
   $("#revealQuestion").textContent = it.question;
+  $("#revealClose").textContent = again ? "關閉" : it.order < 4 ? "收進背包，找下一個 🎒" : "收進背包 🎒";
   $("#revealSheet").classList.remove("hidden");
   $("#revealSheet .sheet").scrollTop = 0;
 }

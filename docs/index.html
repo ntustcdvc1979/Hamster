@@ -15,19 +15,56 @@
         <div class="name"><span id="meName"></span> <span class="muted" style="font-weight:400;font-size:12px">✏️ 改名</span></div>
         <div class="muted">尋找內心的倉鼠</div>
       </div>
-      <div style="font-weight:900;font-size:20px"><span id="foundN">0</span>/<span id="totalN">4</span></div>
+      <div style="font-weight:900;font-size:20px"><span id="doneN">0</span>/4</div>
     </div>
     <div class="progress"><div id="progBar"></div></div>
 
-    <div class="radar lv0" id="radar">
-      <div class="lbl" id="radarLbl">離最近的寶物還有</div>
-      <div><span class="dist" id="distNum">--</span><span class="unit" id="distUnit"></span></div>
-      <div class="temp" id="tempLbl">取得定位中…</div>
-      <div class="trend" id="trendLbl"></div>
-      <div class="acc" id="accLbl"></div>
+    <!-- 尋找中 -->
+    <div id="huntView" style="display:contents">
+      <div class="target-line">
+        <div class="ico" id="targetIco"></div>
+        <div class="grow"><div class="t" id="targetTitle">第 1 個寶物</div>
+          <div class="muted" id="targetSub">依照順序，一次找一個</div></div>
+      </div>
+
+      <div class="radar lv0" id="radar">
+        <div class="lbl" id="radarLbl">離寶物還有</div>
+        <div><span class="dist" id="distNum">--</span><span class="unit" id="distUnit"></span></div>
+        <div class="temp" id="tempLbl">取得定位中…</div>
+        <div class="trend" id="trendLbl"></div>
+        <div class="acc" id="accLbl"></div>
+      </div>
+
+      <button class="btn find-btn" id="findBtn" disabled>🔍 我找到了！</button>
     </div>
 
-    <button class="btn find-btn" id="findBtn" disabled>🔍 我找到了！</button>
+    <!-- 小任務 -->
+    <div id="missionView" class="mission hidden">
+      <div class="ico" id="mIco"></div>
+      <div class="step" id="mStep"></div>
+      <div class="nm" id="mName"></div>
+      <div class="task-title">🎯 小任務</div>
+      <div class="task" id="mTask"></div>
+
+      <div id="photoBox" class="photo-box hidden">
+        <label class="btn" style="text-align:center;cursor:pointer">
+          📷 打開相機拍照
+          <input id="photoInput" type="file" accept="image/*" capture="environment" hidden>
+        </label>
+        <div id="photoList"></div>
+      </div>
+
+      <div id="memoryBox" class="hidden">
+        <button class="btn" id="memStartBtn">🎮 開始 12 格記憶挑戰</button>
+        <button class="btn secondary hidden" id="memWallBtn">🖼️ 我的作品牆 / 原圖對照</button>
+      </div>
+
+      <div class="waiting">
+        完成任務後，請主持人幫你按「完成」<span class="dots"></span><br>
+        <span class="muted">主持人看到的你的名字：</span><br>
+        <span class="who" id="mWho"></span>
+      </div>
+    </div>
 
     <div class="bag">
       <h3>🎒 我的收藏</h3>
@@ -35,11 +72,11 @@
     </div>
   </div>
 
-  <!-- 揭曉 -->
+  <!-- 揭曉（主持人按完成後） -->
   <div id="revealSheet" class="overlay middle hidden">
     <div class="sheet reveal">
       <div class="reveal-ico" id="revealIco"></div>
-      <div class="muted" id="revealSub">你找到了</div>
+      <div class="muted" id="revealSub">任務完成！</div>
       <div class="item-name" id="revealName"></div>
       <div class="item-tag" id="revealTag"></div>
       <div class="item-block">
@@ -50,7 +87,7 @@
         <div class="block-title">💬 給自己的一句話</div>
         <div class="item-desc" id="revealQuestion"></div>
       </div>
-      <button class="btn" data-close>收進背包 🎒</button>
+      <button class="btn" data-close id="revealClose">收進背包 🎒</button>
     </div>
   </div>
 

@@ -62,6 +62,7 @@ const ICONS = {
   </svg>`,
 };
 
+/** 預設內容，依尋找順序排列（主持人可在主持人頁面修改 name / mission / meaning / question） */
 export const ITEMS = [
   {
     id: "wheel",
@@ -69,22 +70,27 @@ export const ITEMS = [
     color: "#4a8fd8",
     meaning: "在有限的空間裡日夜奔跑，滾輪讓鼠鼠釋放精力，但太小的滾輪卻會讓脊椎受傷。它提醒我們：忙碌本身不是目的，找到適合自己的節奏與方向，才不會在原地空轉。",
     question: "你最近每天都在奔跑的事情，是讓你成長的跑道，還是讓你喘不過氣的滾輪？",
+    mission: "找到靜音滾輪了！請在原地等主持人說明這一關的小任務，完成後主持人會幫你按「完成」。",
   },
   {
     id: "nest",
     name: "柔軟紙棉",
     sub: "築巢墊材",
     color: "#d9a37a",
+    activity: "photo",
     meaning: "視力不好的鼠鼠，是靠著一片片撕碎的紙棉，為自己築出能安心睡覺的窩。它提醒我們：真正能接住生命的，往往不是驚天動地的大事，而是那些微小卻溫柔的日常細節。",
     question: "今天服務中哪個微小的動作讓你覺得「對牠來說很重要」？生活裡又是誰給過你這樣的安全感？",
+    mission: "【鼠鼠視角微距攝影】\n4 個人把手機鏡頭貼近地面、草叢或牆角（模擬鼠鼠身高只有幾公分的視角），各自拍下一張「鼠鼠眼中的世界」。\n\n拍好後回來圍成一圈展示照片，分享：「如果你是一隻鼠鼠，看到這個畫面會有什麼感覺？覺得安全、害怕，還是新奇？」\n\n💭 蹲低身體換個視角，才能體會小生命在龐大環境裡需要尋找安全感的心情。",
   },
   {
     id: "seed",
     name: "飽滿的瓜子",
     sub: "頰囊囤糧",
     color: "#3b3330",
-    meaning: "鼠鼠遇到喜歡的食物會先塞滿臉頰帶回窩裡，但塞得太滿時，其實連咀嚼都變得困難。它提醒我們：安全感不是靠無止盡的囤積換來的，適時把空間留出來，才能真正品嚐當下的滿足。",
-    question: "面對未來的焦慮，你最常往自己生命裡「囤積」什麼？現在有什麼是你可以放心分享出去的？",
+    activity: "memory",
+    meaning: "鼠鼠遇到喜歡的食物總想一次全部塞進頰囊，塞得太滿時，連走路都變得笨重。就像剛剛的 12 格記憶考驗一樣，當我們試圖把所有事物、待辦事項與焦慮一股腦全往生命裡塞，只要一點點干擾（就像那題數學題），原本想抓住的東西反而容易遺忘。\n\n安全感不是靠「全部擁有」換來的，懂得為自己篩選、留白，才能真正留住最重要的事物。",
+    question: "【基礎題】剛剛在 3 秒高壓作畫時，你的腦袋是不是一片空白？在 12 格裡面，你印象最深刻、畫得最有自信的是哪一格？為什麼那一格特別留得住？\n\n【延伸題】回到大學生活裡，你最近最常往自己生命裡「囤積」什麼（例如：學分、活動、待辦清單或焦慮）？如果現在必須從滿滿的頰囊裡「吐出幾顆瓜子」放手，你最想先放下哪一件事？",
+    mission: "【12 格飽滿記憶大考驗】\n① 等主持人喊「1、2、3 開始！」，大家同時按下「開始挑戰」。\n② 12 格圖只出現 3 秒，盡量塞進腦袋！\n③ 算出一題數學題才能解鎖畫布。\n④ 每格限時 3 秒，憑記憶把 12 格畫出來。\n⑤ 畫完把手機螢幕朝上放在中間，等主持人搶答，最後一起點「原圖對照」！",
   },
   {
     id: "chew",
@@ -92,10 +98,41 @@ export const ITEMS = [
     color: "#b5793f",
     meaning: "鼠鼠的門牙終生都會不斷生長，必須靠一次次啃咬硬物，才能維持剛好的長度。它提醒我們：生活裡的摩擦與難題不會自動消失，但每一次耐心的面對與調適，都在幫我們修整出更好的狀態。",
     question: "遇到卡關或需要耐心的時刻，你通常用什麼方式幫自己「磨牙」排解壓力？",
+    mission: "找到蘋果木磨牙棒了！請在原地等主持人說明這一關的小任務，完成後主持人會幫你按「完成」。",
   },
-].map((it) => ({ ...it, icon: ICONS[it.id] }));
+].map((it, i) => ({ ...it, order: i + 1, icon: ICONS[it.id] }));
 
 export const ITEM = Object.fromEntries(ITEMS.map((it) => [it.id, it]));
+
+/** 主持人可以修改的欄位 */
+export const EDITABLE = [
+  { key: "name", label: "物品名稱", rows: 1 },
+  { key: "mission", label: "找到後的小任務", rows: 6 },
+  { key: "meaning", label: "✨ 獲得意義（主持人按完成後顯示）", rows: 6 },
+  { key: "question", label: "💬 給自己的一句話", rows: 5 },
+];
+
+/** 預設內容 + 主持人在資料庫裡的修改 */
+export function mergeItems(overrides) {
+  return ITEMS.map((it) => {
+    const o = overrides?.[it.id] || {};
+    const out = { ...it };
+    EDITABLE.forEach(({ key }) => { if (typeof o[key] === "string" && o[key].trim()) out[key] = o[key]; });
+    return out;
+  });
+}
+
+/** 校園尺度的冷熱提示（永吉國中校區約 185 × 210 公尺） */
+export function heatLevel(d, radius = 15) {
+  if (d > 120) return [0, "🧊 還很遠，換個方向試試"];
+  if (d > 70) return [1, "❄️ 有點冷"];
+  if (d > 40) return [2, "🌤️ 溫溫的"];
+  if (d > Math.max(radius + 8, 20)) return [3, "🔥 很熱了！"];
+  return [4, "🌋 超級燙！就在附近！"];
+}
+
+/** 地圖預設中心：台北市立永吉國中 */
+export const MAP_CENTER = [25.04829, 121.57347];
 
 /* ---------------- 工具 ---------------- */
 export const $ = (s, el = document) => el.querySelector(s);
@@ -123,9 +160,9 @@ export function esc(s) {
   })[c]);
 }
 
-/** 已經放好位置的物品 [{...item, lat, lng}] */
-export function placedItems(spots) {
-  return ITEMS.filter((it) => spots?.[it.id]?.lat != null)
+/** 已經放好位置的物品（依順序） [{...item, lat, lng}] */
+export function placedItems(spots, items = ITEMS) {
+  return items.filter((it) => spots?.[it.id]?.lat != null)
     .map((it) => ({ ...it, lat: spots[it.id].lat, lng: spots[it.id].lng }));
 }
 
