@@ -2,20 +2,58 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
   <meta name="theme-color" content="#f08a24">
   <title>尋找內心的倉鼠</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="screen center">
-    <div class="card">
-      <div class="big-emoji">🐹</div>
-      <div class="title">尋找內心的倉鼠</div>
-      <p class="muted">走到真實的地點，跟著距離提示，<br>找出藏起來的寶物！</p>
-      <a href="player.html" style="text-decoration:none"><button class="btn">🔍 我是玩家</button></a>
-      <a href="host.html" style="text-decoration:none"><button class="btn secondary">🗺️ 我是主持人</button></a>
+  <div id="gameScreen" class="player-app">
+    <div class="p-head">
+      <div style="font-size:34px">🐹</div>
+      <div class="grow" id="nameBox">
+        <div class="name"><span id="meName"></span> <span class="muted" style="font-weight:400;font-size:12px">✏️ 改名</span></div>
+        <div class="muted">尋找內心的倉鼠</div>
+      </div>
+      <div style="font-weight:900;font-size:20px"><span id="foundN">0</span>/<span id="totalN">4</span></div>
+    </div>
+    <div class="progress"><div id="progBar"></div></div>
+
+    <div class="radar lv0" id="radar">
+      <div class="lbl" id="radarLbl">離最近的寶物還有</div>
+      <div><span class="dist" id="distNum">--</span><span class="unit" id="distUnit"></span></div>
+      <div class="temp" id="tempLbl">取得定位中…</div>
+      <div class="trend" id="trendLbl"></div>
+      <div class="acc" id="accLbl"></div>
+    </div>
+
+    <button class="btn find-btn" id="findBtn" disabled>🔍 我找到了！</button>
+
+    <div class="bag">
+      <h3>🎒 我的收藏</h3>
+      <div class="bag-grid" id="bagItems"></div>
     </div>
   </div>
+
+  <!-- 揭曉 -->
+  <div id="revealSheet" class="overlay middle hidden">
+    <div class="sheet reveal">
+      <div class="reveal-ico" id="revealIco"></div>
+      <div class="muted" id="revealSub">你找到了</div>
+      <div class="item-name" id="revealName"></div>
+      <div class="item-tag" id="revealTag"></div>
+      <div class="item-block">
+        <div class="block-title">✨ 獲得意義</div>
+        <div class="item-desc" id="revealMeaning"></div>
+      </div>
+      <div class="item-block q">
+        <div class="block-title">💬 給自己的一句話</div>
+        <div class="item-desc" id="revealQuestion"></div>
+      </div>
+      <button class="btn" data-close>收進背包 🎒</button>
+    </div>
+  </div>
+
+  <script type="module" src="player.js"></script>
 </body>
 </html>

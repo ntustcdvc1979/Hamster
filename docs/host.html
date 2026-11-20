@@ -11,90 +11,50 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-
-  <!-- 開場：建立 / 開啟房間 -->
-  <div id="startScreen" class="screen center">
-    <div class="card">
-      <div class="big-emoji">🗺️</div>
-      <div class="title">主持人</div>
-      <p class="muted">建立一場遊戲，在地圖上藏好倉鼠的寶物</p>
-      <label for="roomName">遊戲名稱</label>
-      <input id="roomName" placeholder="例如：大安森林公園找倉鼠" maxlength="40">
-      <button class="btn" id="createBtn">✨ 建立新遊戲</button>
-
-      <div class="divider">或開啟已建立的遊戲</div>
-      <input id="openCode" class="code-input" placeholder="代碼" maxlength="4" autocomplete="off">
-      <button class="btn secondary" id="openBtn">開啟</button>
-      <p class="muted" style="margin-top:18px"><a href="index.html">← 回首頁</a></p>
-    </div>
-  </div>
-
-  <!-- 主畫面 -->
-  <div id="hostApp" class="host-app hidden">
+  <div id="hostApp" class="host-app">
     <div class="topbar">
       <div class="grow">
-        <div class="room-code" id="codeLabel">----</div>
-        <div class="room-name" id="nameLabel"></div>
+        <div class="room-code" style="letter-spacing:.02em">🐹 主持人</div>
+        <div class="room-name">選一個物品，點地圖放置或移動</div>
       </div>
-      <button class="btn small" id="shareBtn">📲 邀請玩家</button>
+      <button class="btn small" id="shareBtn">📲 玩家連結</button>
     </div>
 
     <div style="position:relative; flex:1; display:flex; min-height:0">
       <div id="map"></div>
-      <div class="map-hint" id="mapHint">點地圖任一處 → 在那裡藏寶物</div>
+      <div class="map-hint" id="mapHint"></div>
       <div class="fab-col" style="bottom:16px">
         <button class="fab" id="locateBtn" title="移到我的位置">📍</button>
-        <button class="fab primary" id="addHereBtn" title="在我現在的位置新增">➕</button>
       </div>
     </div>
 
     <div class="panel" id="panel">
       <div class="panel-handle" id="panelHandle"><span></span></div>
       <div class="tabs">
-        <button data-tab="spots" class="active">地點 <span id="spotCount">0</span></button>
+        <button data-tab="items" class="active">物品 <span id="placedCount">0</span>/4</button>
         <button data-tab="players">玩家 <span id="playerCount">0</span></button>
         <button data-tab="settings">設定</button>
       </div>
-      <div class="tab-body" id="tab-spots"></div>
+      <div class="tab-body" id="tab-items"></div>
       <div class="tab-body hidden" id="tab-players"></div>
       <div class="tab-body hidden" id="tab-settings">
         <label for="radiusInput">找到的判定範圍（公尺）</label>
         <input id="radiusInput" type="number" inputmode="numeric" min="3" max="200" value="15">
-        <p class="muted">玩家距離地點在這個範圍內，才能按「找到了」。GPS 在戶外誤差約 5–15 公尺，建議 10–20。</p>
-        <label for="nameInput">遊戲名稱</label>
-        <input id="nameInput" maxlength="40">
+        <p class="muted">玩家距離物品在這個範圍內，才能按「找到了」。GPS 在戶外誤差約 5–15 公尺，建議 10–20。</p>
         <label style="display:flex;align-items:center;gap:8px;font-weight:400">
           <input type="checkbox" id="showPlayers" checked style="width:auto"> 在地圖上顯示玩家位置
         </label>
         <button class="btn secondary" id="saveSettingsBtn">儲存設定</button>
         <button class="btn secondary" id="resetBtn">🔄 清空所有玩家進度</button>
-        <button class="btn secondary" id="leaveBtn">🚪 切換到別的遊戲</button>
-        <button class="btn danger" id="deleteRoomBtn">🗑️ 刪除這場遊戲</button>
       </div>
     </div>
   </div>
 
-  <!-- 編輯地點 -->
-  <div id="spotSheet" class="overlay hidden">
-    <div class="sheet">
-      <h3><span id="sheetTitle">新增寶物</span><button class="close" data-close>×</button></h3>
-      <div class="muted" id="sheetCoords"></div>
-      <label for="itemInput">寶物名稱</label>
-      <input id="itemInput" placeholder="例如：葵花籽" maxlength="30">
-      <label for="descInput">文字描述（玩家找到時會看到）</label>
-      <textarea id="descInput" placeholder="例如：一顆飽滿的葵花籽，代表你心中最單純的快樂……"></textarea>
-      <p class="muted">💡 位置不準？關掉這個視窗後，直接拖曳地圖上的圖釘就能移動。</p>
-      <button class="btn" id="saveSpotBtn">💾 儲存</button>
-      <button class="btn danger hidden" id="deleteSpotBtn">刪除這個地點</button>
-    </div>
-  </div>
-
-  <!-- 邀請 -->
+  <!-- 玩家連結 -->
   <div id="shareSheet" class="overlay middle hidden">
     <div class="sheet" style="text-align:center">
-      <h3>邀請玩家<button class="close" data-close>×</button></h3>
-      <p>遊戲代碼</p>
-      <div class="room-code" id="shareCode" style="font-size:44px;font-weight:900;letter-spacing:.2em;color:var(--brand-dark)"></div>
+      <h3>玩家連結<button class="close" data-close>×</button></h3>
+      <p class="muted">玩家掃 QR code 或打開連結就能直接開始</p>
       <div class="qr-box" id="qr"></div>
       <div class="link-box" id="shareLink"></div>
       <div class="row">

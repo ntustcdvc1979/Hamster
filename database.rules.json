@@ -2,17 +2,24 @@
   "rules": {
     ".read": false,
     ".write": false,
-    "rooms": {
-      "$room": {
-        ".read": true,
+    "hamster": {
+      ".read": true,
+      "meta": {
         ".write": true,
-        "meta": {
-          "radius": { ".validate": "newData.isNumber() && newData.val() >= 3 && newData.val() <= 200" }
-        },
-        "spots": {
-          "$spot": {
-            ".validate": "newData.hasChildren(['lat', 'lng', 'item'])"
-          }
+        "radius": { ".validate": "newData.isNumber() && newData.val() >= 3 && newData.val() <= 200" }
+      },
+      "spots": {
+        ".write": true,
+        "$item": {
+          ".validate": "$item.matches(/^(wheel|nest|seed|chew)$/) && newData.hasChildren(['lat', 'lng'])",
+          "lat": { ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90" },
+          "lng": { ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180" }
+        }
+      },
+      "players": {
+        ".write": true,
+        "$pid": {
+          "name": { ".validate": "newData.isString() && newData.val().length <= 20" }
         }
       }
     }

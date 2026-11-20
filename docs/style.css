@@ -191,3 +191,37 @@ textarea { min-height: 96px; resize: vertical; }
 
 .confetti { position: fixed; top: -20px; font-size: 26px; z-index: 3000; pointer-events: none; animation: fall linear forwards; }
 @keyframes fall { to { transform: translateY(110dvh) rotate(540deg); } }
+
+/* ================= 四個物品 ================= */
+.item-pin { width: 48px; height: 48px; border-radius: 50%; background: #fff; border: 4px solid var(--c, var(--brand));
+  box-shadow: 0 3px 8px rgba(0,0,0,.35); position: relative; display: grid; place-items: center; transition: transform .15s; }
+.item-pin::after { content: ""; position: absolute; left: 50%; bottom: -11px; transform: translateX(-50%);
+  border: 7px solid transparent; border-top: 8px solid var(--c, var(--brand)); }
+.item-pin .ico { width: 34px; height: 34px; }
+.item-pin.sel { transform: scale(1.18); box-shadow: 0 0 0 4px rgba(240,138,36,.45), 0 3px 10px rgba(0,0,0,.4); }
+.item-pin svg, .item-ico svg, .mini-ico svg, .map-hint svg, .bag-slot svg, .reveal-ico svg { width: 100%; height: 100%; display: block; }
+
+.item-row { border-radius: 12px; padding: 9px 8px; border: 2px solid transparent; }
+.item-row.sel { background: #fff3e3; border-color: var(--brand); }
+.item-ico { width: 42px; height: 42px; flex: none; background: #fff8ef; border-radius: 12px; padding: 4px; }
+.here-btn { flex: none; font-size: 13px !important; padding: 8px 10px !important; }
+.mini-ico { display: inline-block; width: 22px; height: 22px; }
+
+.map-hint { display: flex; align-items: center; gap: 6px; }
+.map-hint svg { width: 22px; height: 22px; flex: none; }
+
+.bag-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.bag-slot { background: #f6efe6; border-radius: 14px; padding: 8px 4px 6px; text-align: center; border: 2px dashed #e2cfb6; }
+.bag-slot .ico { width: 44px; height: 44px; margin: 0 auto; filter: grayscale(1) brightness(.4) opacity(.25); }
+.bag-slot .nm { font-size: 11px; font-weight: 700; color: var(--muted); margin-top: 4px; line-height: 1.25; }
+.bag-slot.got { background: #fff6ea; border: 2px solid var(--brand); cursor: pointer; }
+.bag-slot.got .ico { filter: none; }
+.bag-slot.got .nm { color: var(--ink); }
+
+.reveal-ico { width: 104px; height: 104px; margin: 0 auto 4px; animation: bounce 1.2s infinite; }
+.reveal .item-name { margin-bottom: 0; }
+.reveal .item-tag { color: var(--muted); font-size: 14px; margin-bottom: 12px; min-height: .5em; }
+.item-block { text-align: left; margin-top: 12px; }
+.block-title { font-weight: 800; font-size: 15px; margin-bottom: 6px; color: var(--brand-dark); }
+.item-block .item-desc { font-size: 16px; }
+.item-block.q .item-desc { background: #fff1d6; border-left: 5px solid var(--brand); font-weight: 600; }
