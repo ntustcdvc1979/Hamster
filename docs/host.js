@@ -1,8 +1,8 @@
 import {
-  db, ref, set, update, remove, onValue, serverTimestamp,
+  db, ref, set, update, remove, onValue,
   ROOT, ITEMS, EDITABLE, MAP_CENTER, mergeItems, $, esc, toast, requireConfig, requireSecure, distM, fmtDist,
 } from "./common.js";
-import { CELLS, COUNTDOWN_MS, DRAW_MS } from "./memory.js";
+import { CELLS } from "./memory.js";
 
 let meta = { radius: 15 };
 let spots = {};
@@ -19,7 +19,6 @@ let selected = ITEMS[0].id;
 let editing = null;
 let showPlayers = true;
 let round = null;
-let serverOffset = 0;
 
 const itemById = (id) => items.find((it) => it.id === id);
 
@@ -91,13 +90,14 @@ function init() {
     }
   });
 
-  $("#startRoundBtn").onclick = startDrawRound;
+  $("#roundMainBtn").onclick = onRoundMain;
+  $("#roundRestartBtn").onclick = onRoundRestart;
+  $("#roundDoneBtn").onclick = onRoundDone;
 
   initMap();
   subscribe();
-  onValue(ref(db, ".info/serverTimeOffset"), (s) => { serverOffset = Number(s.val()) || 0; });
   onValue(ref(db, `${ROOT}/round`), (s) => { round = s.val(); renderSeedTab(); });
-  setInterval(renderSeedTab, 250);
+  setInterval(renderSeedTab, 1000);
   renderItems();
 }
 
@@ -124,6 +124,7 @@ function subscribe() {
     renderItems();
     renderPlayers();
     renderPlayerMarkers();
+    renderSeedTab();
   });
 }
 
@@ -423,50 +424,101 @@ function openShare() {
   $("#shareSheet").classList.remove("hidden");
 }
 
-/* ---------------- 🌻 12 格出題 ---------------- */
+/* ---------------- 🌻 12 格出題（主持人控制換格） ---------------- */
+const SEED_ID = ITEMS.find((it) => it.activity === "memory").id;
+
 function seedWaiting() {
   return Object.entries(players).filter(([, p]) => {
     const st = playerState(p);
-    return st.kind === "wait" && st.item.activity === "memory";
-  }).map(([pid, p]) => p.name);
+    return st.kind === "wait" && st.item.id === SEED_ID;
+  }).map(([pid, p]) => ({ pid, name: p.name }));
 }
 
-let lastSeedKey = "";
+/** null = 沒有進行中；0～11 = 正在畫的格子；12 = 畫完了 */
+function roundCell() {
+  return round?.id && typeof round.cell === "number" ? Math.min(12, round.cell) : null;
+}
+
+let lastCueKey = "";
 function renderSeedTab() {
-  const names = seedWaiting();
-  let k = null; // null=沒有進行中, -1=倒數, 0..11=作畫中
-  let left = 0;
-  if (round?.startAt) {
-    const drawStart = round.startAt - serverOffset + COUNTDOWN_MS;
-    const now = Date.now();
-    if (now < drawStart) { k = -1; left = Math.ceil((drawStart - now) / 1000); }
-    else if (now < drawStart + DRAW_MS * 12) k = Math.floor((now - drawStart) / DRAW_MS);
+  const waiting = seedWaiting();
+  const k = roundCell();
+  const names = waiting.map((w) => w.name).join("、");
+
+  const main = $("#roundMainBtn");
+  const doneBtn = $("#roundDoneBtn");
+  const restart = $("#roundRestartBtn");
+  if (k === null || k >= 12) {
+    main.textContent = k === null ? "🚀 開始（第 1 格）" : "🚀 開始新的一輪（第 1 格）";
+    main.classList.toggle("secondary", k === 12 && waiting.length > 0);
+  } else if (k < 11) {
+    main.textContent = `▶ 下一格（第 ${k + 2} 格）`;
+    main.classList.remove("secondary");
+  } else {
+    main.textContent = "🏁 畫完了，顯示 12 宮格";
+    main.classList.remove("secondary");
   }
-  const btn = $("#startRoundBtn");
-  btn.disabled = k !== null;
-  btn.textContent = k !== null ? "作畫進行中…" : `🚀 開始作畫（${names.length} 人在瓜子任務）`;
-  $("#roundStatus").textContent = k === null ? (names.length ? "等待中：" + names.join("、") : "目前沒有玩家在瓜子任務")
-    : k === -1 ? `⏱️ 倒數 ${left} 秒…` : `✏️ 玩家正在畫第 ${k + 1} 格：${CELLS[k].label}`;
+  restart.classList.toggle("hidden", k === null || k >= 12);
+  doneBtn.classList.toggle("hidden", !(k === 12 && waiting.length));
+  doneBtn.textContent = `✅ 完成這關（${waiting.length} 人）`;
+
+  $("#roundStatus").textContent =
+    k === null ? (waiting.length ? `在瓜子任務：${names}` : "目前沒有玩家在瓜子任務")
+    : k >= 12 ? `🏁 作畫結束，玩家手機正顯示 12 宮格。搶答完按「完成這關」${waiting.length ? `（${names}）` : ""}`
+    : `✏️ 玩家正在畫第 ${k + 1} 格${waiting.length ? `（${names}）` : ""}`;
+  $("#roundNow").innerHTML = k !== null && k < 12
+    ? `<div class="round-now">${CELLS[k].svg}<div><div class="muted">請描述</div><div class="big">第 ${k + 1} 格：${esc(CELLS[k].label)}</div></div></div>`
+    : "";
 
   const key = String(k);
-  if (key === lastSeedKey && $("#cueGrid").childElementCount) return;
-  lastSeedKey = key;
+  if (key === lastCueKey && $("#cueGrid").childElementCount) return;
+  lastCueKey = key;
   $("#cueGrid").innerHTML = CELLS.map((c, i) => {
-    const cls = k === null || k < 0 ? "" : i === k ? "now" : i < k ? "past" : "";
+    const cls = k === null || k >= 12 ? "" : i === k ? "now" : i < k ? "past" : "";
     return `<div class="cue ${cls}"><span class="no">${i + 1}</span>${c.svg}<div>${esc(c.label)}</div></div>`;
   }).join("");
 }
 
-async function startDrawRound() {
-  const n = seedWaiting().length;
-  const msg = n ? `開始作畫？${n} 位玩家的手機會同時倒數 3 秒後進入畫布。` : "目前沒有玩家在瓜子任務，仍要開始嗎？";
-  if (!confirm(msg)) return;
+async function writeRound(data, msg) {
+  const btn = $("#roundMainBtn");
+  btn.disabled = true;
   try {
-    await set(ref(db, `${ROOT}/round`), { id: "r" + Date.now().toString(36), startAt: serverTimestamp() });
-    toast("🚀 已開始！");
+    await set(ref(db, `${ROOT}/round`), data);
+    if (msg) toast(msg);
   } catch (e) {
-    toast("開始失敗：" + e.message, 4000);
+    toast("失敗：" + e.message, 4000);
+  } finally {
+    btn.disabled = false;
   }
+}
+
+function newRound() {
+  return { id: "r" + Date.now().toString(36), cell: 0, updatedAt: Date.now() };
+}
+
+function onRoundMain() {
+  const k = roundCell();
+  if (k === null || k >= 12) {
+    const n = seedWaiting().length;
+    const msg = k === 12
+      ? "開始新的一輪？正在顯示 12 宮格的玩家會回到畫布、重新從第 1 格畫起。"
+      : n ? `開始？${n} 位玩家的手機會進入畫布第 1 格。` : "目前沒有玩家在瓜子任務，仍要開始嗎？";
+    if (!confirm(msg)) return;
+    writeRound(newRound(), "🚀 已開始，玩家正在畫第 1 格");
+  } else {
+    writeRound({ ...round, cell: k + 1, updatedAt: Date.now() }, k + 1 >= 12 ? "🏁 玩家手機顯示 12 宮格" : `▶ 第 ${k + 2} 格`);
+  }
+}
+
+function onRoundRestart() {
+  if (!confirm("重新開始一輪？玩家目前畫到的內容會清掉，從第 1 格重來。")) return;
+  writeRound(newRound(), "已重新開始");
+}
+
+function onRoundDone() {
+  const list = seedWaiting().map((w) => w.pid);
+  if (!list.length) return;
+  if (confirm(`確定讓 ${list.length} 位玩家完成「${itemById(SEED_ID).name}」這關？`)) completeMission(list, SEED_ID);
 }
 
 // 每 15 秒刷新「幾秒前」

@@ -63,11 +63,14 @@
       },
       "round": {
         ".write": true,
-        ".validate": "newData.hasChildren([\"id\",\"startAt\"])",
+        ".validate": "newData.hasChildren([\"id\",\"cell\"])",
         "id": {
           ".validate": "newData.isString() && newData.val().length <= 30"
         },
-        "startAt": {
+        "cell": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 12"
+        },
+        "updatedAt": {
           ".validate": "newData.isNumber()"
         },
         "$other": {

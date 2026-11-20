@@ -2,7 +2,7 @@ import {
   db, ref, update, onValue,
   ROOT, ITEMS, mergeItems, heatLevel, TREND, $, distM, fmtDist, esc, toast, requireConfig, requireSecure,
 } from "./common.js";
-import { startRound, openWall, hasWall, COUNTDOWN_MS, DRAW_MS } from "./memory.js";
+import { syncRound, closeGame, openWall, hasWall } from "./memory.js";
 
 const LS = "hamster_player_v2";
 
@@ -18,9 +18,7 @@ let lastTarget = null; // { id, d }
 let lastUpload = 0;
 let allDoneShown = false;
 let revealQueue = [];
-let round = null;        // 主持人發起的 12 格出題 { id, startAt(伺服器時間) }
-let startedRound = null; // 這支手機已經進入過的回合
-let serverOffset = 0;    // 伺服器時間 - 本機時間
+let round = null; // 主持人控制的 12 格出題 { id, cell }：cell 0～11 正在畫的格子，12 = 畫完
 
 function init() {
   let saved = null;
@@ -65,15 +63,17 @@ function init() {
       // 主持人剛按下「完成」→ 跳出獲得意義
       const nowDone = Object.keys(me.done);
       if (meLoaded) {
-        nowDone.filter((id) => !knownDone.has(id)).forEach((id) => queueReveal(id));
+        nowDone.filter((id) => !knownDone.has(id)).forEach((id) => {
+          if (ITEMS.find((it) => it.id === id)?.activity === "memory") closeGame(); // 收起 12 宮格
+          queueReveal(id);
+        });
       }
       knownDone = new Set(nowDone);
     }
     meLoaded = true;
     render();
   });
-  onValue(ref(db, ".info/serverTimeOffset"), (s) => { serverOffset = Number(s.val()) || 0; });
-  onValue(ref(db, `${ROOT}/round`), (s) => { round = s.val(); maybeStartRound(); });
+  onValue(ref(db, `${ROOT}/round`), (s) => { round = s.val(); syncMemory(); });
 
   startGps();
   render();
@@ -224,19 +224,15 @@ function renderMission(cur) {
   $("#photoBox").classList.toggle("hidden", cur.activity !== "photo");
   $("#memoryBox").classList.toggle("hidden", cur.activity !== "memory");
   $("#memWallBtn").classList.toggle("hidden", !hasWall());
-  maybeStartRound();
+  syncMemory();
 }
 
-/** 主持人按下 12 格「開始」→ 正在瓜子任務的玩家直接進入畫布 */
-function maybeStartRound() {
-  if (!round?.id || typeof round.startAt !== "number" || round.id === startedRound) return;
+/** 正在瓜子任務的玩家，畫面跟著主持人的「開始 / 下一格 / 畫完」走 */
+function syncMemory() {
+  if (!round) return;
   const cur = currentItem();
   if (!cur || cur.activity !== "memory" || !me.found?.[cur.id]) return;
-  const drawStart = round.startAt - serverOffset + COUNTDOWN_MS;
-  if (Date.now() > drawStart + DRAW_MS * 12) return; // 回合已經結束
-  startedRound = round.id;
-  try { navigator.vibrate?.(200); } catch {}
-  startRound(drawStart);
+  syncRound(round);
 }
 
 function renderAllDone() {

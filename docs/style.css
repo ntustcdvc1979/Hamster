@@ -306,3 +306,9 @@ textarea { min-height: 96px; resize: vertical; }
 .cue .no { position: absolute; left: 4px; top: 2px; color: var(--brand-dark); font-size: 12px; }
 .cue.now { border-color: var(--danger); background: #fff0ec; transform: scale(1.04); }
 .cue.past { opacity: .45; }
+.mem-stage.flash .mem-canvas { animation: cellFlash .5s; }
+@keyframes cellFlash { 0% { box-shadow: 0 0 0 10px rgba(240,138,36,.6); } 100% { box-shadow: 0 0 0 0 rgba(240,138,36,0); } }
+.mem-wait-done { text-align: center; font-weight: 800; color: #2f6fb5; background: #eef6ff; border: 2px dashed #9cc6f2; border-radius: 14px; padding: 10px; margin-top: 8px; }
+.round-now { background: #fff0ec; border: 2px solid var(--danger); border-radius: 14px; padding: 10px; margin: 8px 0; display: flex; align-items: center; gap: 10px; }
+.round-now svg { width: 64px; height: 64px; flex: none; }
+.round-now .big { font-size: 20px; font-weight: 900; }

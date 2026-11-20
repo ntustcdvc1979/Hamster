@@ -40,9 +40,12 @@
       <div class="tab-body hidden" id="tab-players"></div>
       <div class="tab-body hidden" id="tab-seed">
         <div class="sec-title" style="margin-top:6px">🌻 12 格飽滿記憶大考驗</div>
-        <p class="muted" style="margin:4px">① 依序口頭描述下面 12 樣東西 → ② 按「開始作畫」→ 正在瓜子任務的玩家手機會同時倒數 3 秒，直接進入畫布，每格 3 秒（共 39 秒）。</p>
+        <p class="muted" style="margin:4px">① 按「開始」→ 正在瓜子任務的玩家進入畫布第 1 格 ② 描述完一格就按「下一格」，大家同步換格 ③ 第 12 格後按「畫完了」→ 玩家手機顯示完整 12 宮格 ④ 搶答完按「完成這關」</p>
         <div id="roundStatus" class="round-live"></div>
-        <button class="btn" id="startRoundBtn">🚀 開始作畫</button>
+        <div id="roundNow"></div>
+        <button class="btn" id="roundMainBtn">🚀 開始（第 1 格）</button>
+        <button class="btn done-btn hidden" id="roundDoneBtn">✅ 完成這關</button>
+        <button class="btn secondary hidden" id="roundRestartBtn">⏹ 重新開始一輪</button>
         <div class="cue-grid" id="cueGrid"></div>
       </div>
       <div class="tab-body hidden" id="tab-settings">
