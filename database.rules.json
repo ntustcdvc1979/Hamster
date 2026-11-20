@@ -75,6 +75,15 @@
         },
         "$other": {
           ".validate": false
+        },
+        "revealed": {
+          ".validate": "newData.isBoolean()"
+        }
+      },
+      "prompts": {
+        ".write": true,
+        "$i": {
+          ".validate": "$i.matches(/^([0-9]|1[01])$/) && newData.isString() && newData.val().length <= 40"
         }
       }
     }

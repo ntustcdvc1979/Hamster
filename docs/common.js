@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { firebaseConfig } from "./firebase-config.js?v=202611201717";
+import { firebaseConfig } from "./firebase-config.js?v=202611201726";
 
 export {
   ref, set, update, remove, onValue, get, serverTimestamp,
@@ -90,7 +90,7 @@ export const ITEMS = [
     activity: "memory",
     meaning: "鼠鼠遇到喜歡的食物總想一次全部塞進頰囊，塞得太滿時，連走路都變得笨重。就像剛剛的 12 格記憶考驗一樣，當我們試圖把所有事物、待辦事項與焦慮一股腦全往生命裡塞，只要一點點干擾（就像那題數學題），原本想抓住的東西反而容易遺忘。\n\n安全感不是靠「全部擁有」換來的，懂得為自己篩選、留白，才能真正留住最重要的事物。",
     question: "【基礎題】剛剛在 3 秒高壓作畫時，你的腦袋是不是一片空白？在 12 格裡面，你印象最深刻、畫得最有自信的是哪一格？為什麼那一格特別留得住？\n\n【延伸題】回到大學生活裡，你最近最常往自己生命裡「囤積」什麼（例如：學分、活動、待辦清單或焦慮）？如果現在必須從滿滿的頰囊裡「吐出幾顆瓜子」放手，你最想先放下哪一件事？",
-    mission: "【12 格飽滿記憶大考驗】\n① 全組到齊後，主持人按下開始，大家的手機會直接進入畫布。\n② 主持人一格一格描述，聽完就憑印象畫下來；主持人說「下一格」，畫面會自動換到下一格。\n③ 12 格畫完，手機會顯示你的完整 12 宮格，把螢幕朝上放在中間，等主持人搶答，最後一起點「原圖對照」！\n④ 主持人按「完成」後就結束這關。",
+    mission: "【12 格飽滿記憶大考驗】\n① 全組到齊後，主持人按下開始，大家的手機會直接進入畫布。\n② 主持人一格一格念出題目，聽到就畫下來；主持人說「下一格」，畫面會自動換到下一格。\n③ 12 格畫完，手機會顯示你的完整 12 宮格，把螢幕朝上放在中間，等主持人搶答，最後主持人會公布答案！\n④ 主持人按「完成」後就結束這關。",
   },
   {
     id: "chew",

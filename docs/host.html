@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f08a24">
   <title>倉鼠主持人</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css?v=202611201717">
+  <link rel="stylesheet" href="style.css?v=202611201726">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -40,13 +40,17 @@
       <div class="tab-body hidden" id="tab-players"></div>
       <div class="tab-body hidden" id="tab-seed">
         <div class="sec-title" style="margin-top:6px">🌻 12 格飽滿記憶大考驗</div>
-        <p class="muted" style="margin:4px">① 按「開始」→ 正在瓜子任務的玩家進入畫布第 1 格 ② 描述完一格就按「下一格」，大家同步換格 ③ 第 12 格後按「畫完了」→ 玩家手機顯示完整 12 宮格 ④ 搶答完按「完成這關」</p>
+        <p class="muted" style="margin:4px">① 按「開始」→ 正在瓜子任務的玩家進入畫布第 1 格 ② 念出題目，玩家畫完就按「下一格」，大家同步換格 ③ 第 12 格後按「畫完了」→ 玩家手機顯示完整 12 宮格 ④ 搶答完按「公布答案」 ⑤ 按「完成這關」</p>
         <div id="roundStatus" class="round-live"></div>
         <div id="roundNow"></div>
         <button class="btn" id="roundMainBtn">🚀 開始（第 1 格）</button>
+        <button class="btn hidden" id="roundRevealBtn">📢 公布答案</button>
         <button class="btn done-btn hidden" id="roundDoneBtn">✅ 完成這關</button>
         <button class="btn secondary hidden" id="roundRestartBtn">⏹ 重新開始一輪</button>
-        <div class="cue-grid" id="cueGrid"></div>
+        <div class="sec-title">📝 12 格題目（可修改）
+          <button class="btn small" id="promptSaveBtn">💾 儲存題目</button></div>
+        <div class="prompt-list" id="promptList"></div>
+        <button class="btn secondary" id="promptResetBtn">↩️ 還原成範例題目（12 種球類）</button>
       </div>
       <div class="tab-body hidden" id="tab-settings">
         <label for="radiusInput">找到的判定範圍（公尺）</label>
@@ -85,6 +89,6 @@
     </div>
   </div>
 
-  <script type="module" src="host.js?v=202611201717"></script>
+  <script type="module" src="host.js?v=202611201726"></script>
 </body>
 </html>

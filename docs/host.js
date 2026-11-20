@@ -1,8 +1,8 @@
 import {
   db, ref, set, update, remove, onValue,
   ROOT, ITEMS, EDITABLE, MAP_CENTER, mergeItems, $, esc, toast, requireConfig, requireSecure, distM, fmtDist,
-} from "./common.js?v=202611201717";
-import { CELLS } from "./memory.js?v=202611201717";
+} from "./common.js?v=202611201726";
+import { DEFAULT_PROMPTS, mergePrompts } from "./memory.js?v=202611201726";
 
 let meta = { radius: 15 };
 let spots = {};
@@ -91,12 +91,16 @@ function init() {
   });
 
   $("#roundMainBtn").onclick = onRoundMain;
+  $("#roundRevealBtn").onclick = onRoundReveal;
+  $("#promptSaveBtn").onclick = savePrompts;
+  $("#promptResetBtn").onclick = resetPrompts;
   $("#roundRestartBtn").onclick = onRoundRestart;
   $("#roundDoneBtn").onclick = onRoundDone;
 
   initMap();
   subscribe();
   onValue(ref(db, `${ROOT}/round`), (s) => { round = s.val(); renderSeedTab(); });
+  onValue(ref(db, `${ROOT}/prompts`), (s) => { prompts = mergePrompts(s.val()); renderPromptList(); });
   setInterval(renderSeedTab, 1000);
   renderItems();
 }
@@ -426,6 +430,7 @@ function openShare() {
 
 /* ---------------- 🌻 12 格出題（主持人控制換格） ---------------- */
 const SEED_ID = ITEMS.find((it) => it.activity === "memory").id;
+let prompts = mergePrompts(null);
 
 function seedWaiting() {
   return Object.entries(players).filter(([, p]) => {
@@ -439,18 +444,16 @@ function roundCell() {
   return round?.id && typeof round.cell === "number" ? Math.min(12, round.cell) : null;
 }
 
-let lastCueKey = "";
 function renderSeedTab() {
   const waiting = seedWaiting();
   const k = roundCell();
+  const revealed = k === 12 && !!round?.revealed;
   const names = waiting.map((w) => w.name).join("、");
 
   const main = $("#roundMainBtn");
-  const doneBtn = $("#roundDoneBtn");
-  const restart = $("#roundRestartBtn");
   if (k === null || k >= 12) {
     main.textContent = k === null ? "🚀 開始（第 1 格）" : "🚀 開始新的一輪（第 1 格）";
-    main.classList.toggle("secondary", k === 12 && waiting.length > 0);
+    main.classList.toggle("secondary", k === 12);
   } else if (k < 11) {
     main.textContent = `▶ 下一格（第 ${k + 2} 格）`;
     main.classList.remove("secondary");
@@ -458,25 +461,60 @@ function renderSeedTab() {
     main.textContent = "🏁 畫完了，顯示 12 宮格";
     main.classList.remove("secondary");
   }
-  restart.classList.toggle("hidden", k === null || k >= 12);
+  $("#roundRevealBtn").classList.toggle("hidden", k !== 12);
+  $("#roundRevealBtn").textContent = revealed ? "✅ 已公布答案" : "📢 公布答案";
+  $("#roundRevealBtn").disabled = revealed;
+  $("#roundRestartBtn").classList.toggle("hidden", k === null || k >= 12);
+  const doneBtn = $("#roundDoneBtn");
   doneBtn.classList.toggle("hidden", !(k === 12 && waiting.length));
   doneBtn.textContent = `✅ 完成這關（${waiting.length} 人）`;
 
   $("#roundStatus").textContent =
     k === null ? (waiting.length ? `在瓜子任務：${names}` : "目前沒有玩家在瓜子任務")
-    : k >= 12 ? `🏁 作畫結束，玩家手機正顯示 12 宮格。搶答完按「完成這關」${waiting.length ? `（${names}）` : ""}`
+    : k >= 12 ? (revealed ? "📢 已公布答案，玩家手機每格下方都看得到題目。結束時按「完成這關」"
+                          : "🏁 作畫結束，玩家手機正顯示 12 宮格。搶答完按「公布答案」")
     : `✏️ 玩家正在畫第 ${k + 1} 格${waiting.length ? `（${names}）` : ""}`;
   $("#roundNow").innerHTML = k !== null && k < 12
-    ? `<div class="round-now">${CELLS[k].svg}<div><div class="muted">請描述</div><div class="big">第 ${k + 1} 格：${esc(CELLS[k].label)}</div></div></div>`
+    ? `<div class="round-now"><div><div class="muted">請念出第 ${k + 1} 格題目</div><div class="big">${esc(prompts[k])}</div></div></div>`
     : "";
 
-  const key = String(k);
-  if (key === lastCueKey && $("#cueGrid").childElementCount) return;
-  lastCueKey = key;
-  $("#cueGrid").innerHTML = CELLS.map((c, i) => {
-    const cls = k === null || k >= 12 ? "" : i === k ? "now" : i < k ? "past" : "";
-    return `<div class="cue ${cls}"><span class="no">${i + 1}</span>${c.svg}<div>${esc(c.label)}</div></div>`;
-  }).join("");
+  // 題目清單：只更新目前格子的標示，不重畫輸入框（避免打字被打斷）
+  document.querySelectorAll("#promptList .prompt-row").forEach((row, i) => {
+    row.classList.toggle("now", k !== null && k < 12 && i === k);
+    row.classList.toggle("past", k !== null && k < 12 && i < k);
+  });
+}
+
+function renderPromptList() {
+  const list = $("#promptList");
+  if (list.contains(document.activeElement)) return; // 正在打字就不要覆蓋
+  list.innerHTML = prompts.map((p, i) => `<div class="prompt-row">
+      <span class="n">${i + 1}</span><input data-prompt="${i}" maxlength="40" value="${esc(p)}"></div>`).join("");
+  renderSeedTab();
+}
+
+async function savePrompts() {
+  const data = {};
+  document.querySelectorAll("[data-prompt]").forEach((inp) => {
+    const i = Number(inp.dataset.prompt);
+    const v = inp.value.trim();
+    if (v && v !== DEFAULT_PROMPTS[i]) data[i] = v;
+  });
+  try {
+    if (Object.keys(data).length) await set(ref(db, `${ROOT}/prompts`), data);
+    else await remove(ref(db, `${ROOT}/prompts`));
+    document.activeElement?.blur?.();
+    toast("📝 題目已儲存");
+  } catch (e) {
+    toast("儲存失敗：" + e.message, 4000);
+  }
+}
+
+async function resetPrompts() {
+  if (!confirm("把 12 格題目還原成範例（12 種球類）？")) return;
+  document.activeElement?.blur?.();
+  await remove(ref(db, `${ROOT}/prompts`));
+  toast("已還原");
 }
 
 async function writeRound(data, msg) {
@@ -493,7 +531,7 @@ async function writeRound(data, msg) {
 }
 
 function newRound() {
-  return { id: "r" + Date.now().toString(36), cell: 0, updatedAt: Date.now() };
+  return { id: "r" + Date.now().toString(36), cell: 0, revealed: false, updatedAt: Date.now() };
 }
 
 function onRoundMain() {
@@ -508,6 +546,11 @@ function onRoundMain() {
   } else {
     writeRound({ ...round, cell: k + 1, updatedAt: Date.now() }, k + 1 >= 12 ? "🏁 玩家手機顯示 12 宮格" : `▶ 第 ${k + 2} 格`);
   }
+}
+
+function onRoundReveal() {
+  if (roundCell() !== 12 || round.revealed) return;
+  writeRound({ ...round, revealed: true, updatedAt: Date.now() }, "📢 已公布答案");
 }
 
 function onRoundRestart() {

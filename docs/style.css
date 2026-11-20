@@ -312,3 +312,13 @@ textarea { min-height: 96px; resize: vertical; }
 .round-now { background: #fff0ec; border: 2px solid var(--danger); border-radius: 14px; padding: 10px; margin: 8px 0; display: flex; align-items: center; gap: 10px; }
 .round-now svg { width: 64px; height: 64px; flex: none; }
 .round-now .big { font-size: 20px; font-weight: 900; }
+.mem-grid.answered .mem-cell { aspect-ratio: auto; display: flex; flex-direction: column; }
+.mem-grid.answered .mem-cell img { aspect-ratio: 1; height: auto; }
+.mem-cell .ans { background: var(--brand); color: #fff; font-size: 11px; font-weight: 800; text-align: center; padding: 3px 2px; line-height: 1.25; }
+.prompt-list { margin: 8px 0; }
+.prompt-row { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
+.prompt-row .n { width: 26px; height: 26px; flex: none; border-radius: 50%; background: var(--line); color: var(--ink); font-weight: 800; font-size: 13px; display: grid; place-items: center; }
+.prompt-row input { padding: 9px 10px; font-size: 15px; }
+.prompt-row.now .n { background: var(--danger); color: #fff; }
+.prompt-row.now input { border-color: var(--danger); background: #fff0ec; }
+.prompt-row.past { opacity: .5; }

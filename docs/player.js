@@ -1,8 +1,8 @@
 import {
   db, ref, update, onValue,
   ROOT, ITEMS, mergeItems, heatLevel, TREND, $, distM, fmtDist, esc, toast, requireConfig, requireSecure,
-} from "./common.js?v=202611201717";
-import { syncRound, closeGame, openWall, hasWall } from "./memory.js?v=202611201717";
+} from "./common.js?v=202611201726";
+import { syncRound, closeGame, openWall, hasWall, mergePrompts } from "./memory.js?v=202611201726";
 
 const LS = "hamster_player_v2";
 
@@ -18,6 +18,7 @@ let lastTarget = null; // { id, d }
 let lastUpload = 0;
 let allDoneShown = false;
 let revealQueue = [];
+let prompts = mergePrompts(null); // 12 格題目（公布答案時顯示）
 let round = null; // 主持人控制的 12 格出題 { id, cell }：cell 0～11 正在畫的格子，12 = 畫完
 
 function init() {
@@ -73,6 +74,7 @@ function init() {
     meLoaded = true;
     render();
   });
+  onValue(ref(db, `${ROOT}/prompts`), (s) => { prompts = mergePrompts(s.val()); syncMemory(); });
   onValue(ref(db, `${ROOT}/round`), (s) => { round = s.val(); syncMemory(); });
 
   startGps();
@@ -232,7 +234,7 @@ function syncMemory() {
   if (!round) return;
   const cur = currentItem();
   if (!cur || cur.activity !== "memory" || !me.found?.[cur.id]) return;
-  syncRound(round);
+  syncRound(round, prompts);
 }
 
 function renderAllDone() {
