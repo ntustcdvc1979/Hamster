@@ -28,7 +28,13 @@
 
 ## 更新網站
 
-改完 `docs/` 裡的檔案後 commit 並 push 到 `main`，GitHub Pages 約 1 分鐘內自動更新。
+改完 `docs/` 裡的檔案後，先執行下面的指令更新版本號，再 commit 並 push 到 `main`，GitHub Pages 約 1 分鐘內自動更新。
+
+```bash
+node bump-version.js
+```
+
+版本號會加在 `.js` / `.css` 的連結後面，避免玩家手機拿到「新 HTML + 舊 JS」的快取（GitHub Pages 會快取 10 分鐘）。玩家如果畫面怪怪的，重新整理一次即可。
 
 ## 更新資料庫規則
 

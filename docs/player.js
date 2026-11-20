@@ -1,8 +1,8 @@
 import {
   db, ref, update, onValue,
   ROOT, ITEMS, mergeItems, heatLevel, TREND, $, distM, fmtDist, esc, toast, requireConfig, requireSecure,
-} from "./common.js";
-import { syncRound, closeGame, openWall, hasWall } from "./memory.js";
+} from "./common.js?v=202611201717";
+import { syncRound, closeGame, openWall, hasWall } from "./memory.js?v=202611201717";
 
 const LS = "hamster_player_v2";
 

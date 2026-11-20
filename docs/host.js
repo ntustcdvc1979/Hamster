@@ -1,8 +1,8 @@
 import {
   db, ref, set, update, remove, onValue,
   ROOT, ITEMS, EDITABLE, MAP_CENTER, mergeItems, $, esc, toast, requireConfig, requireSecure, distM, fmtDist,
-} from "./common.js";
-import { CELLS } from "./memory.js";
+} from "./common.js?v=202611201717";
+import { CELLS } from "./memory.js?v=202611201717";
 
 let meta = { radius: 15 };
 let spots = {};
