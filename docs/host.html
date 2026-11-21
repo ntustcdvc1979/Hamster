@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f08a24">
   <title>倉鼠主持人</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css?v=202611201726">
+  <link rel="stylesheet" href="style.css?v=202611210032">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -33,12 +33,32 @@
       <div class="tabs">
         <button data-tab="items" class="active">物品 <span id="placedCount">0</span>/4</button>
         <button data-tab="players">玩家 <span id="playerCount">0</span><span id="waitBadge" class="hidden" style="background:var(--danger);color:#fff;border-radius:10px;padding:0 6px;margin-left:4px;font-size:12px"></span></button>
-        <button data-tab="seed">🌻 出題</button>
+        <button data-tab="seed">🎯 關卡</button>
         <button data-tab="settings">設定</button>
       </div>
       <div class="tab-body" id="tab-items"></div>
       <div class="tab-body hidden" id="tab-players"></div>
       <div class="tab-body hidden" id="tab-seed">
+        <div class="seg">
+          <button data-pane="seedPane" class="active">🌻 瓜子 12 格</button>
+          <button data-pane="wheelPane">🎡 滾輪 指令</button>
+        </div>
+
+        <!-- 🎡 滾輪：原地自轉迷航記 -->
+        <div id="wheelPane" class="hidden">
+          <div class="sec-title" style="margin-top:6px">🎡 盲眼「原地自轉迷航記」</div>
+          <p class="muted" style="margin:4px">大家面向同一個起點目標 → 閉眼 → 你一個一個念指令（點指令或按「下一個」標記念到哪）→ 念完請大家<b>保持閉眼、伸手指出起點目標</b> → 喊「張開眼睛」！</p>
+          <div class="seg small" id="wheelLevels"></div>
+          <div id="wheelList" class="cmd-list"></div>
+          <div class="row">
+            <button class="btn secondary" id="wheelPrevBtn">◀ 上一個</button>
+            <button class="btn" id="wheelNextBtn">下一個 ▶</button>
+          </div>
+          <div id="wheelStatus" class="round-live" style="margin-top:10px"></div>
+          <button class="btn done-btn hidden" id="wheelDoneBtn">✅ 完成這關</button>
+        </div>
+
+        <div id="seedPane">
         <div class="sec-title" style="margin-top:6px">🌻 12 格飽滿記憶大考驗</div>
         <p class="muted" style="margin:4px">① 按「開始」→ 正在瓜子任務的玩家進入畫布第 1 格 ② 念出題目，玩家畫完就按「下一格」，大家同步換格 ③ 第 12 格後按「畫完了」→ 玩家手機顯示完整 12 宮格 ④ 搶答完按「公布答案」 ⑤ 按「完成這關」</p>
         <div id="roundStatus" class="round-live"></div>
@@ -51,6 +71,7 @@
           <button class="btn small" id="promptSaveBtn">💾 儲存題目</button></div>
         <div class="prompt-list" id="promptList"></div>
         <button class="btn secondary" id="promptResetBtn">↩️ 還原成範例題目（12 種球類）</button>
+        </div>
       </div>
       <div class="tab-body hidden" id="tab-settings">
         <label for="radiusInput">找到的判定範圍（公尺）</label>
@@ -89,6 +110,6 @@
     </div>
   </div>
 
-  <script type="module" src="host.js?v=202611201726"></script>
+  <script type="module" src="host.js?v=202611210032"></script>
 </body>
 </html>

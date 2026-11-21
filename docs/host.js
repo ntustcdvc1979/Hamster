@@ -1,8 +1,8 @@
 import {
   db, ref, set, update, remove, onValue,
   ROOT, ITEMS, EDITABLE, MAP_CENTER, mergeItems, $, esc, toast, requireConfig, requireSecure, distM, fmtDist,
-} from "./common.js?v=202611201726";
-import { DEFAULT_PROMPTS, mergePrompts } from "./memory.js?v=202611201726";
+} from "./common.js?v=202611210032";
+import { DEFAULT_PROMPTS, mergePrompts } from "./memory.js?v=202611210032";
 
 let meta = { radius: 15 };
 let spots = {};
@@ -94,6 +94,7 @@ function init() {
   $("#roundRevealBtn").onclick = onRoundReveal;
   $("#promptSaveBtn").onclick = savePrompts;
   $("#promptResetBtn").onclick = resetPrompts;
+  initWheel();
   $("#roundRestartBtn").onclick = onRoundRestart;
   $("#roundDoneBtn").onclick = onRoundDone;
 
@@ -129,6 +130,7 @@ function subscribe() {
     renderPlayers();
     renderPlayerMarkers();
     renderSeedTab();
+    renderWheelStatus();
   });
 }
 
@@ -562,6 +564,92 @@ function onRoundDone() {
   const list = seedWaiting().map((w) => w.pid);
   if (!list.length) return;
   if (confirm(`確定讓 ${list.length} 位玩家完成「${itemById(SEED_ID).name}」這關？`)) completeMission(list, SEED_ID);
+}
+
+/* ---------------- 🎡 滾輪：原地自轉迷航記（主持人念指令） ---------------- */
+const WHEEL_LEVELS = [
+  {
+    name: "第一題（簡單）",
+    cmds: ["向左轉 90 度", "原地踏步 3 下", "向後轉", "原地跳 1 下", "向左轉 90 度", "原地踏步 2 下"],
+  },
+  {
+    name: "第二題（中等）",
+    cmds: ["向右轉 90 度", "原地踏步 4 下", "向右轉 45 度", "雙手舉高原地跳 2 下", "向後轉",
+      "向左轉 90 度", "原地踏步 5 下", "向左轉 45 度", "向後轉"],
+  },
+  {
+    name: "第三題（困難）",
+    cmds: ["向左轉 90 度", "原地跳 2 下", "向左轉 45 度", "原地踏步 3 下", "向後轉", "向右轉 90 度",
+      "拍手 2 下", "向右轉 45 度", "原地踏步 4 下", "向後轉", "向左轉 90 度", "原地跳 1 下", "向右轉 90 度"],
+  },
+];
+const WHEEL_ID = "wheel";
+let wheelLevel = 0;
+let wheelStep = -1; // -1 = 還沒開始念；cmds.length = 念完了（只存在主持人這支手機）
+
+function initWheel() {
+  document.querySelectorAll(".seg [data-pane]").forEach((b) => (b.onclick = () => {
+    document.querySelectorAll(".seg [data-pane]").forEach((x) => x.classList.toggle("active", x === b));
+    ["seedPane", "wheelPane"].forEach((id) => $(`#${id}`).classList.toggle("hidden", id !== b.dataset.pane));
+  }));
+  $("#wheelLevels").innerHTML = WHEEL_LEVELS.map((lv, i) =>
+    `<button data-level="${i}">${lv.name.replace(/（.*）/, "")}<br><small>${lv.name.match(/（(.*)）/)[1]}・${lv.cmds.length} 個指令</small></button>`).join("");
+  $("#wheelLevels").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-level]");
+    if (!b) return;
+    wheelLevel = Number(b.dataset.level);
+    wheelStep = -1;
+    renderWheel();
+  });
+  $("#wheelList").addEventListener("click", (e) => {
+    const row = e.target.closest("[data-step]");
+    if (!row) return;
+    wheelStep = Number(row.dataset.step);
+    renderWheel();
+  });
+  $("#wheelNextBtn").onclick = () => {
+    const n = WHEEL_LEVELS[wheelLevel].cmds.length;
+    if (wheelStep >= n) {
+      // 念完了 → 下一題
+      if (wheelLevel < WHEEL_LEVELS.length - 1) { wheelLevel += 1; wheelStep = -1; }
+    } else wheelStep += 1;
+    renderWheel();
+  };
+  $("#wheelPrevBtn").onclick = () => {
+    if (wheelStep > -1) wheelStep -= 1;
+    renderWheel();
+  };
+  $("#wheelDoneBtn").onclick = () => {
+    const list = waitingOn(WHEEL_ID);
+    if (list.length && confirm(`確定讓 ${list.length} 位玩家完成「${itemById(WHEEL_ID).name}」這關？`)) completeMission(list, WHEEL_ID);
+  };
+  renderWheel();
+}
+
+function renderWheel() {
+  const lv = WHEEL_LEVELS[wheelLevel];
+  const n = lv.cmds.length;
+  document.querySelectorAll("#wheelLevels [data-level]").forEach((b, i) => b.classList.toggle("active", i === wheelLevel));
+  $("#wheelList").innerHTML =
+    `<div class="cmd-row ${wheelStep === -1 ? "now" : ""}" data-step="-1"><span class="n">🙈</span><span>請大家面向起點目標，閉上眼睛</span></div>` +
+    lv.cmds.map((c, i) => `<div class="cmd-row ${i === wheelStep ? "now" : i < wheelStep ? "past" : ""}" data-step="${i}">
+      <span class="n">${i + 1}</span><span>「${esc(c)}」</span></div>`).join("") +
+    `<div class="cmd-row end ${wheelStep >= n ? "now" : ""}" data-step="${n}"><span class="n">👉</span><span>保持閉眼，伸手指出起點目標 → 喊「張開眼睛」！</span></div>`;
+  $("#wheelPrevBtn").disabled = wheelStep <= -1;
+  $("#wheelNextBtn").textContent = wheelStep >= n
+    ? (wheelLevel < WHEEL_LEVELS.length - 1 ? `下一題：${WHEEL_LEVELS[wheelLevel + 1].name} ▶` : "三題都完成了 🎉")
+    : wheelStep === -1 ? "開始念第 1 個指令 ▶" : "下一個 ▶";
+  $("#wheelNextBtn").disabled = wheelStep >= n && wheelLevel >= WHEEL_LEVELS.length - 1;
+  $("#wheelList").querySelector(".now")?.scrollIntoView({ block: "nearest" });
+  renderWheelStatus();
+}
+
+function renderWheelStatus() {
+  const list = waitingOn(WHEEL_ID);
+  const names = list.map((pid) => players[pid]?.name).filter(Boolean).join("、");
+  $("#wheelStatus").textContent = list.length ? `在滾輪任務：${names}` : "目前沒有玩家在滾輪任務";
+  $("#wheelDoneBtn").classList.toggle("hidden", !list.length);
+  $("#wheelDoneBtn").textContent = `✅ 完成這關（${list.length} 人）`;
 }
 
 // 每 15 秒刷新「幾秒前」
