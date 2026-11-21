@@ -1,8 +1,8 @@
 import {
   db, ref, set, update, remove, onValue,
   ROOT, ITEMS, EDITABLE, MAP_CENTER, INTRO_TEXT, OUTRO_TITLE, OUTRO_TEXT, mergeItems, $, esc, toast, requireConfig, requireSecure, distM, fmtDist,
-} from "./common.js?v=202611210100";
-import { DEFAULT_PROMPTS, mergePrompts } from "./memory.js?v=202611210100";
+} from "./common.js?v=202611210111";
+import { DEFAULT_PROMPTS, mergePrompts } from "./memory.js?v=202611210111";
 
 let meta = { radius: 15 };
 let spots = {};
@@ -724,7 +724,7 @@ async function takeItem(pid, id) {
   }
 }
 
-/* ---------------- 🎤 開場 / 🍎 蘋果木 15 秒計時 ---------------- */
+/* ---------------- 🎤 開場 / 🍎 蘋果木 1 分鐘計時 ---------------- */
 const CHEW_ID = "chew";
 let chewTimer = null;
 
@@ -742,9 +742,9 @@ function initIntroChew() {
 function startChewTimer() {
   clearInterval(chewTimer);
   const el = $("#chewTimer");
-  const end = Date.now() + 15000;
+  const end = Date.now() + 60000;
   el.classList.remove("over");
-  $("#chewTimerBtn").textContent = "⏱️ 重新計時 15 秒";
+  $("#chewTimerBtn").textContent = "⏱️ 重新計時 1 分鐘";
   const tick = () => {
     const left = Math.ceil((end - Date.now()) / 1000);
     if (left <= 0) {
@@ -754,7 +754,7 @@ function startChewTimer() {
       try { navigator.vibrate?.([200, 100, 200]); } catch {}
       return;
     }
-    el.textContent = left;
+    el.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
   };
   tick();
   chewTimer = setInterval(tick, 200);
