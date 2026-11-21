@@ -333,3 +333,13 @@ textarea { min-height: 96px; resize: vertical; }
 .cmd-row.now .n { background: var(--danger); color: #fff; }
 .cmd-row.past { opacity: .45; }
 .cmd-row.end { background: #eef6ff; border-style: dashed; font-size: 15px; }
+.finale { background: linear-gradient(160deg, #fff6e0, #ffe2b8); border-radius: 22px; box-shadow: var(--shadow); padding: 22px 18px; text-align: center; flex: 1; }
+.finale-ico { font-size: 56px; animation: bounce 1.4s infinite; }
+.finale-title { font-size: 21px; font-weight: 900; color: var(--brand-dark); margin: 8px 0 12px; line-height: 1.4; }
+.finale-text { text-align: left; white-space: pre-wrap; line-height: 1.85; font-size: 16px; }
+.seg4 button { font-size: 13px; padding: 8px 2px; }
+.script { white-space: pre-wrap; line-height: 1.85; font-size: 16px; background: #fffaf2; border: 2px solid var(--line); border-radius: 14px; padding: 12px 14px; margin: 6px 0 10px; }
+.steps { padding-left: 22px; line-height: 1.7; margin: 6px 0; }
+.steps li { margin: 6px 0; }
+.timer { font-size: 64px; font-weight: 900; text-align: center; color: var(--brand-dark); margin: 4px 0; line-height: 1.2; }
+.timer.over { color: var(--danger); font-size: 40px; animation: pop .4s; }

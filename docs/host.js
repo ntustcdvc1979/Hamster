@@ -1,8 +1,8 @@
 import {
   db, ref, set, update, remove, onValue,
-  ROOT, ITEMS, EDITABLE, MAP_CENTER, mergeItems, $, esc, toast, requireConfig, requireSecure, distM, fmtDist,
-} from "./common.js?v=202611210032";
-import { DEFAULT_PROMPTS, mergePrompts } from "./memory.js?v=202611210032";
+  ROOT, ITEMS, EDITABLE, MAP_CENTER, INTRO_TEXT, OUTRO_TITLE, OUTRO_TEXT, mergeItems, $, esc, toast, requireConfig, requireSecure, distM, fmtDist,
+} from "./common.js?v=202611210100";
+import { DEFAULT_PROMPTS, mergePrompts } from "./memory.js?v=202611210100";
 
 let meta = { radius: 15 };
 let spots = {};
@@ -85,16 +85,30 @@ function init() {
       const list = waitingOn(id);
       if (confirm(`確定讓 ${list.length} 位玩家完成「${itemById(id).name}」任務？`)) completeMission(list, id);
     } else if (row) {
-      const p = players[row.dataset.pid];
-      if (p?.lat) map.setView([p.lat, p.lng], Math.max(map.getZoom(), 18));
+      openPlayer(row.dataset.pid);
     }
   });
+
+  // 單一玩家：給予 / 收回物品
+  $("#psItems").addEventListener("click", (e) => {
+    const give = e.target.closest("[data-give]");
+    const take = e.target.closest("[data-take]");
+    if (give) giveItem(sheetPid, give.dataset.give);
+    else if (take) takeItem(sheetPid, take.dataset.take);
+  });
+  $("#psLocateBtn").onclick = () => {
+    const p = players[sheetPid];
+    if (!p?.lat) return toast("這位玩家還沒有定位資料");
+    closeSheets();
+    map.setView([p.lat, p.lng], Math.max(map.getZoom(), 18));
+  };
 
   $("#roundMainBtn").onclick = onRoundMain;
   $("#roundRevealBtn").onclick = onRoundReveal;
   $("#promptSaveBtn").onclick = savePrompts;
   $("#promptResetBtn").onclick = resetPrompts;
   initWheel();
+  initIntroChew();
   $("#roundRestartBtn").onclick = onRoundRestart;
   $("#roundDoneBtn").onclick = onRoundDone;
 
@@ -131,6 +145,8 @@ function subscribe() {
     renderPlayerMarkers();
     renderSeedTab();
     renderWheelStatus();
+    renderChewStatus();
+    renderPlayerSheet();
   });
 }
 
@@ -340,7 +356,7 @@ function renderPlayers() {
     return;
   }
 
-  let html = "";
+  let html = `<p class="muted" style="margin:6px 4px">💡 點玩家名字可以直接給予或收回物品</p>`;
   // 等待完成任務：依物品分組
   items.forEach((it) => {
     const w = waits.filter((p) => p.st.item.id === it.id).sort((a, b) => (a.found?.[it.id] || 0) - (b.found?.[it.id] || 0));
@@ -590,7 +606,7 @@ let wheelStep = -1; // -1 = 還沒開始念；cmds.length = 念完了（只存�
 function initWheel() {
   document.querySelectorAll(".seg [data-pane]").forEach((b) => (b.onclick = () => {
     document.querySelectorAll(".seg [data-pane]").forEach((x) => x.classList.toggle("active", x === b));
-    ["seedPane", "wheelPane"].forEach((id) => $(`#${id}`).classList.toggle("hidden", id !== b.dataset.pane));
+    ["introPane", "seedPane", "wheelPane", "chewPane"].forEach((id) => $(`#${id}`).classList.toggle("hidden", id !== b.dataset.pane));
   }));
   $("#wheelLevels").innerHTML = WHEEL_LEVELS.map((lv, i) =>
     `<button data-level="${i}">${lv.name.replace(/（.*）/, "")}<br><small>${lv.name.match(/（(.*)）/)[1]}・${lv.cmds.length} 個指令</small></button>`).join("");
@@ -650,6 +666,106 @@ function renderWheelStatus() {
   $("#wheelStatus").textContent = list.length ? `在滾輪任務：${names}` : "目前沒有玩家在滾輪任務";
   $("#wheelDoneBtn").classList.toggle("hidden", !list.length);
   $("#wheelDoneBtn").textContent = `✅ 完成這關（${list.length} 人）`;
+}
+
+/* ---------------- 單一玩家：直接給予 / 收回物品 ---------------- */
+let sheetPid = null;
+
+function openPlayer(pid) {
+  sheetPid = pid;
+  $("#playerSheet").classList.remove("hidden");
+  renderPlayerSheet();
+}
+
+function renderPlayerSheet() {
+  if (!sheetPid || $("#playerSheet").classList.contains("hidden")) return;
+  const p = players[sheetPid];
+  if (!p) { $("#playerSheet").classList.add("hidden"); return; }
+  const st = playerState(p);
+  $("#psName").textContent = p.name;
+  $("#psInfo").textContent = (st.kind === "all" ? "🏆 四關都完成了"
+    : st.kind === "wait" ? `⏳ 正在做第 ${st.item.order} 關「${st.item.name}」的任務`
+    : `🔍 正在找第 ${st.item.order} 個：${st.item.name}`) + ` · ${seenText(p)}`;
+  $("#psItems").innerHTML = items.map((it) => {
+    const done = !!p.done?.[it.id];
+    const found = !!p.found?.[it.id];
+    const status = done ? "✅ 已獲得" : found ? "⏳ 任務中" : "🔒 還沒拿到";
+    const btn = done
+      ? `<button class="btn small secondary" data-take="${it.id}">↩️ 收回</button>`
+      : `<button class="btn small done-btn" data-give="${it.id}">🎁 直接給予</button>`;
+    return `<div class="list-item">
+      <span class="order">${it.order}</span><div class="item-ico">${it.icon}</div>
+      <div class="grow"><div class="t">${esc(it.name)}</div><div class="s">${status}</div></div>${btn}</div>`;
+  }).join("");
+}
+
+async function giveItem(pid, id) {
+  const p = players[pid];
+  if (!p) return;
+  const now = Date.now();
+  const upd = { [`done/${id}`]: now };
+  if (!p.found?.[id]) upd[`found/${id}`] = now;
+  try {
+    await update(ref(db, `${ROOT}/players/${pid}`), upd);
+    toast(`🎁 已給 ${p.name}「${itemById(id).name}」`);
+  } catch (e) {
+    toast("失敗：" + e.message, 4000);
+  }
+}
+
+async function takeItem(pid, id) {
+  const p = players[pid];
+  if (!p || !confirm(`確定收回 ${p.name} 的「${itemById(id).name}」？他需要重新找這一關。`)) return;
+  try {
+    await update(ref(db, `${ROOT}/players/${pid}`), { [`done/${id}`]: null, [`found/${id}`]: null });
+    toast("已收回");
+  } catch (e) {
+    toast("失敗：" + e.message, 4000);
+  }
+}
+
+/* ---------------- 🎤 開場 / 🍎 蘋果木 15 秒計時 ---------------- */
+const CHEW_ID = "chew";
+let chewTimer = null;
+
+function initIntroChew() {
+  $("#introText").textContent = INTRO_TEXT;
+  $("#outroText").textContent = `【${OUTRO_TITLE}】\n\n${OUTRO_TEXT}`;
+  $("#chewTimerBtn").onclick = startChewTimer;
+  $("#chewDoneBtn").onclick = () => {
+    const list = waitingOn(CHEW_ID);
+    if (list.length && confirm(`確定讓 ${list.length} 位玩家完成「${itemById(CHEW_ID).name}」這關？`)) completeMission(list, CHEW_ID);
+  };
+  renderChewStatus();
+}
+
+function startChewTimer() {
+  clearInterval(chewTimer);
+  const el = $("#chewTimer");
+  const end = Date.now() + 15000;
+  el.classList.remove("over");
+  $("#chewTimerBtn").textContent = "⏱️ 重新計時 15 秒";
+  const tick = () => {
+    const left = Math.ceil((end - Date.now()) / 1000);
+    if (left <= 0) {
+      clearInterval(chewTimer);
+      el.textContent = "亮手機！📱";
+      el.classList.add("over");
+      try { navigator.vibrate?.([200, 100, 200]); } catch {}
+      return;
+    }
+    el.textContent = left;
+  };
+  tick();
+  chewTimer = setInterval(tick, 200);
+}
+
+function renderChewStatus() {
+  const list = waitingOn(CHEW_ID);
+  const names = list.map((pid) => players[pid]?.name).filter(Boolean).join("、");
+  $("#chewStatus").textContent = list.length ? `在蘋果木任務：${names}` : "目前沒有玩家在蘋果木任務";
+  $("#chewDoneBtn").classList.toggle("hidden", !list.length);
+  $("#chewDoneBtn").textContent = `✅ 完成這關（${list.length} 人）`;
 }
 
 // 每 15 秒刷新「幾秒前」

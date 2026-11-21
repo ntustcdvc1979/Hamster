@@ -1,8 +1,8 @@
 import {
   db, ref, update, onValue,
-  ROOT, ITEMS, mergeItems, heatLevel, TREND, $, distM, fmtDist, esc, toast, requireConfig, requireSecure,
-} from "./common.js?v=202611210032";
-import { syncRound, closeGame, openWall, hasWall, mergePrompts } from "./memory.js?v=202611210032";
+  ROOT, ITEMS, mergeItems, heatLevel, TREND, OUTRO_TITLE, OUTRO_TEXT, $, distM, fmtDist, esc, toast, requireConfig, requireSecure,
+} from "./common.js?v=202611210100";
+import { syncRound, closeGame, openWall, hasWall, mergePrompts } from "./memory.js?v=202611210100";
 
 const LS = "hamster_player_v2";
 
@@ -19,6 +19,7 @@ let lastUpload = 0;
 let allDoneShown = false;
 let revealQueue = [];
 let prompts = mergePrompts(null); // 12 格題目（公布答案時顯示）
+let shownMission = null; // 目前顯示的任務（換關時清掉照片）
 let round = null; // 主持人控制的 12 格出題 { id, cell }：cell 0～11 正在畫的格子，12 = 畫完
 
 function init() {
@@ -42,6 +43,7 @@ function init() {
     showNextReveal();
   };
   $("#photoInput").onchange = onPhoto;
+  $("#albumInput").onchange = onPhoto;
   $("#memWallBtn").onclick = openWall;
   setName(myName);
 
@@ -159,8 +161,9 @@ function render() {
 
   const cur = currentItem();
   const inMission = cur && me.found?.[cur.id];
-  $("#huntView").classList.toggle("hidden", !!inMission);
+  $("#huntView").classList.toggle("hidden", !!inMission || !cur);
   $("#missionView").classList.toggle("hidden", !inMission);
+  $("#finaleView").classList.toggle("hidden", !!cur);
 
   if (!cur) return renderAllDone();
   if (inMission) return renderMission(cur);
@@ -223,7 +226,14 @@ function renderMission(cur) {
   $("#mStep").textContent = `第 ${cur.order} 關 · 找到了！`;
   $("#mName").textContent = cur.name;
   $("#mTask").textContent = cur.mission;
-  $("#photoBox").classList.toggle("hidden", cur.activity !== "photo");
+  if (cur.id !== shownMission) {
+    shownMission = cur.id;
+    $("#photoList").innerHTML = ""; // 換關就清掉上一關的照片
+  }
+  const pic = cur.activity === "photo" || cur.activity === "album";
+  $("#photoBox").classList.toggle("hidden", !pic);
+  $("#camLabel").classList.toggle("hidden", cur.activity !== "photo");
+  $("#albumLabel").classList.toggle("hidden", cur.activity !== "album");
   $("#memoryBox").classList.toggle("hidden", cur.activity !== "memory");
   $("#memWallBtn").classList.toggle("hidden", !hasWall());
   syncMemory();
@@ -237,17 +247,10 @@ function syncMemory() {
   syncRound(round, prompts);
 }
 
+/** 四關都完成 → 顯示收尾文字 */
 function renderAllDone() {
-  $("#huntView").classList.remove("hidden");
-  $("#targetIco").innerHTML = "🏆";
-  $("#targetIco").classList.add("won");
-  $("#targetTitle").textContent = "四個寶物都找到了！";
-  $("#targetSub").textContent = "點下面的收藏可以再讀一次";
-  $("#accLbl").textContent = "";
-  setRadar(4, "", "🏆", "", "全部完成！", "你找到了內心的倉鼠 🐹💛");
-  const btn = $("#findBtn");
-  btn.disabled = true;
-  btn.textContent = "🎉 任務完成";
+  $("#finaleTitle").textContent = `【${OUTRO_TITLE}】`;
+  $("#finaleText").textContent = OUTRO_TEXT;
   if (!allDoneShown && meLoaded) { allDoneShown = true; if (!revealQueue.length) confetti(); }
 }
 
@@ -285,7 +288,7 @@ function onPhoto(e) {
   const url = URL.createObjectURL(f);
   const img = document.createElement("img");
   img.src = url;
-  img.alt = "鼠鼠眼中的世界";
+  img.alt = "我的照片";
   img.onclick = () => {
     const full = document.createElement("div");
     full.className = "photo-full";
@@ -295,7 +298,7 @@ function onPhoto(e) {
   };
   $("#photoList").prepend(img);
   e.target.value = "";
-  toast("拍好了！點照片可以全螢幕展示");
+  toast("點照片可以全螢幕亮給大家看");
 }
 
 /* ---------------- 揭曉 ---------------- */

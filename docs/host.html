@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f08a24">
   <title>倉鼠主持人</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css?v=202611210032">
+  <link rel="stylesheet" href="style.css?v=202611210100">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -39,9 +39,33 @@
       <div class="tab-body" id="tab-items"></div>
       <div class="tab-body hidden" id="tab-players"></div>
       <div class="tab-body hidden" id="tab-seed">
-        <div class="seg">
-          <button data-pane="seedPane" class="active">🌻 瓜子 12 格</button>
-          <button data-pane="wheelPane">🎡 滾輪 指令</button>
+        <div class="seg seg4">
+          <button data-pane="introPane" class="active">🎤 開場</button>
+          <button data-pane="seedPane">🌻 瓜子</button>
+          <button data-pane="wheelPane">🎡 滾輪</button>
+          <button data-pane="chewPane">🍎 蘋果木</button>
+        </div>
+
+        <!-- 🎤 開場 / 結尾（只在主持人頁面） -->
+        <div id="introPane">
+          <div class="sec-title" style="margin-top:6px">🎤 開場介紹（請念給大家聽）</div>
+          <div class="script" id="introText"></div>
+          <div class="sec-title">🏁 結尾（玩家四關完成後，手機上也會看到）</div>
+          <div class="script" id="outroText"></div>
+        </div>
+
+        <!-- 🍎 蘋果木：手機相簿「尋找你的精神蘋果木」 -->
+        <div id="chewPane" class="hidden">
+          <div class="sec-title" style="margin-top:6px">🍎 手機相簿「尋找你的精神蘋果木」</div>
+          <ol class="steps">
+            <li>喊：「給大家 <b>15 秒</b>，在自己手機相簿裡翻出一張『每次看到就能讓你瞬間放鬆、心情變好』的照片（可能是食物、寵物、風景或梗圖）！」然後按下面的計時。</li>
+            <li>時間到，喊「<b>亮手機！</b>」，4 個人同時把螢幕轉向中間。</li>
+            <li>發起搶答：「先不准主人開口！另外 3 個人搶答猜猜看，這張照片的主人是怎麼靠它紓壓的？」猜完再由主人揭曉。</li>
+          </ol>
+          <div class="timer" id="chewTimer">15</div>
+          <button class="btn" id="chewTimerBtn">⏱️ 開始 15 秒</button>
+          <div id="chewStatus" class="round-live" style="margin-top:10px"></div>
+          <button class="btn done-btn hidden" id="chewDoneBtn">✅ 完成這關</button>
         </div>
 
         <!-- 🎡 滾輪：原地自轉迷航記 -->
@@ -58,7 +82,7 @@
           <button class="btn done-btn hidden" id="wheelDoneBtn">✅ 完成這關</button>
         </div>
 
-        <div id="seedPane">
+        <div id="seedPane" class="hidden">
         <div class="sec-title" style="margin-top:6px">🌻 12 格飽滿記憶大考驗</div>
         <p class="muted" style="margin:4px">① 按「開始」→ 正在瓜子任務的玩家進入畫布第 1 格 ② 念出題目，玩家畫完就按「下一格」，大家同步換格 ③ 第 12 格後按「畫完了」→ 玩家手機顯示完整 12 宮格 ④ 搶答完按「公布答案」 ⑤ 按「完成這關」</p>
         <div id="roundStatus" class="round-live"></div>
@@ -96,6 +120,16 @@
     </div>
   </div>
 
+  <!-- 單一玩家：給予 / 收回物品 -->
+  <div id="playerSheet" class="overlay hidden">
+    <div class="sheet">
+      <h3><span>🐹</span><span id="psName"></span><button class="close" data-close>×</button></h3>
+      <div class="muted" id="psInfo"></div>
+      <div id="psItems" style="margin-top:8px"></div>
+      <button class="btn secondary" id="psLocateBtn">📍 在地圖上看他的位置</button>
+    </div>
+  </div>
+
   <!-- 玩家連結 -->
   <div id="shareSheet" class="overlay middle hidden">
     <div class="sheet" style="text-align:center">
@@ -110,6 +144,6 @@
     </div>
   </div>
 
-  <script type="module" src="host.js?v=202611210032"></script>
+  <script type="module" src="host.js?v=202611210100"></script>
 </body>
 </html>

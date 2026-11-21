@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
   <meta name="theme-color" content="#f08a24">
   <title>尋找內心的倉鼠</title>
-  <link rel="stylesheet" href="style.css?v=202611210032">
+  <link rel="stylesheet" href="style.css?v=202611210100">
 </head>
 <body>
   <div id="gameScreen" class="player-app">
@@ -47,15 +47,19 @@
       <div class="task" id="mTask"></div>
 
       <div id="photoBox" class="photo-box hidden">
-        <label class="btn" style="text-align:center;cursor:pointer">
+        <label class="btn" id="camLabel" style="text-align:center;cursor:pointer">
           📷 打開相機拍照
           <input id="photoInput" type="file" accept="image/*" capture="environment" hidden>
+        </label>
+        <label class="btn" id="albumLabel" style="text-align:center;cursor:pointer">
+          🖼️ 從相簿挑一張照片
+          <input id="albumInput" type="file" accept="image/*" hidden>
         </label>
         <div id="photoList"></div>
       </div>
 
       <div id="memoryBox" class="hidden">
-        <div class="mem-wait" id="memWait">⏳ 等主持人描述完 12 樣東西並按下開始<span class="dots"></span><br>
+        <div class="mem-wait" id="memWait">⏳ 等主持人按下開始<span class="dots"></span><br>
           <span class="muted">開始後畫面會自動進入畫布，不用按任何按鈕</span></div>
         <button class="btn secondary hidden" id="memWallBtn">🖼️ 我的 12 宮格</button>
       </div>
@@ -65,6 +69,13 @@
         <span class="muted">主持人看到的你的名字：</span><br>
         <span class="who" id="mWho"></span>
       </div>
+    </div>
+
+    <!-- 收尾（四關都完成） -->
+    <div id="finaleView" class="finale hidden">
+      <div class="finale-ico">🐹💛</div>
+      <div class="finale-title" id="finaleTitle"></div>
+      <div class="finale-text" id="finaleText"></div>
     </div>
 
     <div class="bag">
@@ -92,6 +103,6 @@
     </div>
   </div>
 
-  <script type="module" src="player.js?v=202611210032"></script>
+  <script type="module" src="player.js?v=202611210100"></script>
 </body>
 </html>
