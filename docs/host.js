@@ -1,8 +1,8 @@
 import {
   db, ref, set, update, remove, onValue,
   ROOT, ITEMS, EDITABLE, MAP_CENTER, INTRO_TEXT, OUTRO_TITLE, OUTRO_TEXT, mergeItems, $, esc, toast, requireConfig, requireSecure, distM, fmtDist,
-} from "./common.js?v=202611210111";
-import { DEFAULT_PROMPTS, mergePrompts } from "./memory.js?v=202611210111";
+} from "./common.js?v=202611210116";
+import { DEFAULT_PROMPTS, mergePrompts } from "./memory.js?v=202611210116";
 
 let meta = { radius: 15 };
 let spots = {};
